@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Contratos — SMS Marabá</title>
+
+<style>
+/* ======= RESET E BASE ======= */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f0f2f5;
+  color: #333;
+  min-height: 100vh;
+}
+
+/* ======= HEADER ======= */
+header {
+  background: linear-gradient(135deg, #0a4d3b 0%, #1a6b4a 50%, #0d5c3a 100%);
+  color: white;
+  padding: 16px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.header-left { display: flex; align-items: center; gap: 18px; }
+.logo { height: 55px; border-radius: 4px; background: rgba(255,255,255,0.95); padding: 4px 8px; }
+.header-title h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+.header-title span { font-size: 12px; opacity: 0.85; letter-spacing: 1px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.btn-atualizar {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-atualizar:hover { background: rgba(255,255,255,0.25); }
+.btn-atualizar:disabled { opacity: 0.5; cursor: not-allowed; }
+#ultimaAtualizacao { font-size: 11px; opacity: 0.7; }
+
+/* ======= CONTAINER ======= */
+.container { max-width: 1360px; margin: 0 auto; padding: 20px; }
+
+/* ======= TABS ======= */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: white;
+  border-radius: 10px 10px 0 0;
+  padding: 4px 4px 0 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+.tab-btn {
+  padding: 12px 24px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s;
+  position: relative;
+}
+.tab-btn:hover { color: #0a4d3b; background: #f5f5f5; }
+.tab-btn.active { color: #0a4d3b; background: #f0f2f5; }
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: #0a4d3b;
+  border-radius: 3px 3px 0 0;
+}
+.conteudo-tab {
+  display: none;
+  background: white;
+  border-radius: 0 0 10px 10px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.conteudo-tab.active { display: block; }
+
+/* ======= CARDS DE MÉTRICAS (Dashboard) ======= */
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.card-metrica {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  border-left: 4px solid #0a4d3b;
+  transition: transform 0.2s;
+}
+.card-metrica:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+.card-metrica .rotulo { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.card-metrica .valor { font-size: 24px; font-weight: 700; color: #222; }
+.card-metrica .icone { font-size: 20px; float: right; opacity: 0.5; }
+.card-metrica.vencido { border-left-color: #e74c3c; }
+.card-metrica.urgente { border-left-color: #e67e22; }
+.card-metrica.atencao { border-left-color: #f1c40f; }
+.card-metrica.normal { border-left-color: #2ecc71; }
+
+/* ======= CARDS DE STATUS ======= */
+.status-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.card-status {
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+  color: white;
+  font-weight: 700;
+}
+.card-status .qtd { font-size: 28px; }
+.card-status .label { font-size: 11px; opacity: 0.9; margin-top: 4px; }
+
+/* ======= GRÁFICOS ======= */
+.graficos-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.grafico-card {
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 18px;
+  border: 1px solid #eee;
+}
+.grafico-card h3 { font-size: 14px; color: #555; margin-bottom: 12px; }
+.barra-container { margin-bottom: 8px; }
+.barra-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px; }
+.barra-wrapper { background: #e9ecef; border-radius: 6px; height: 22px; overflow: hidden; }
+.barra-preenchida {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s ease;
+  display: flex; align-items: center; padding-left: 8px;
+  font-size: 11px; color: white; font-weight: 600;
+}
+.donut-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.donut { position: relative; width: 160px; height: 160px; }
+.donut-legenda { font-size: 13px; }
+.donut-legenda .item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.donut-legenda .bolinha { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+
+/* ======= TABELA ======= */
+.tabela-wrapper { overflow-x: auto; margin-top: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: #0a4d3b;
+  color: white;
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+  position: sticky; top: 0;
+}
+tbody td { padding: 8px; border-bottom: 1px solid #eee; }
+tbody tr:hover { background: #f8f9fa; }
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ======= ALERTAS ======= */
+.alertas { margin-bottom: 20px; }
+.alerta-item {
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  display: flex; align-items: center; gap: 10px;
+  border-left: 4px solid;
+}
+.alerta-item.critico { background: #fef2f2; border-left-color: #e74c3c; }
+.alerta-item.urgente { background: #fff7ed; border-left-color: #e67e22; }
+.alerta-item.atencao { background: #fefce8; border-left-color: #f1c40f; }
+
+/* ======= FORMULÁRIOS ======= */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 700px;
+}
+.form-grid.uma-col { grid-template-columns: 1fr; max-width: 500px; }
+.form-group { margin-bottom: 4px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 4px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border 0.2s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: #0a4d3b;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(10,77,59,0.15);
+}
+.form-group textarea { resize: vertical; min-height: 60px; }
+.btn-submit {
+  background: #0a4d3b;
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 8px;
+  grid-column: 1 / -1;
+}
+.btn-submit:hover { background: #0d5c3a; }
+.btn-submit:disabled { background: #999; cursor: not-allowed; }
+.form-msg { margin-top: 10px; padding: 10px; border-radius: 6px; font-weight: 600; display: none; }
+.form-msg.sucesso { display: block; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.form-msg.erro { display: block; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+/* ======= LOADING ======= */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 60px; font-size: 18px; color: #888;
+}
+.spinner { 
+  width: 40px; height: 40px; border: 4px solid #e0e0e0;
+  border-top: 4px solid #0a4d3b; border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ======= RESPONSIVO ======= */
+@media (max-width: 768px) {
+  .graficos-row { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .metricas { grid-template-columns: 1fr 1fr; }
+  header { flex-direction: column; gap: 10px; text-align: center; }
+  .header-left { flex-direction: column; }
+}
+
+/* Loading para dentro dos cards */
+.card-loading {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+}
+.card-loading::after {
+  content: '⏳';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+}
+</style>
+</head>
+<body>
+
+<!-- ========== HEADER ========== -->
+<header>
+  <div class="header-left">
+    <img src="logo.png" alt="SMS Marabá" class="logo" id="logoImg" onerror="this.style.display='none'">
+    <div class="header-title">
+      <h1>Controle de Contratos</h1>
+      <span>SECRETARIA MUNICIPAL DE SAÚDE DE MARABÁ</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="ultimaAtualizacao"></span>
+    <button class="btn-atualizar" onclick="carregarDashboard()" id="btnRefresh">
+      🔄 Atualizar dados
+    </button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ========== TABS ========== -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="abrirTab('dashboard', this)">📊 Dashboard</button>
+    <button class="tab-btn" onclick="abrirTab('contratos', this)">📋 Contratos</button>
+    <button class="tab-btn" onclick="abrirTab('producao', this)">💰 Produção</button>
+    <button class="tab-btn" onclick="abrirTab('aditivos', this)">📝 Aditivos</button>
+  </div>
+
+  <!-- ========== TAB DASHBOARD ========== -->
+  <div class="conteudo-tab active" id="tab-dashboard">
+    <div id="loadingDashboard" class="loading">
+      <div class="spinner"></div>
+      <span>Carregando dashboard...</span>
+    </div>
+    <div id="conteudoDashboard" style="display:none">
+      <div class="metricas" id="metricasCards"></div>
+      <div class="status-cards" id="statusCards"></div>
+      <div id="alertasContainer"></div>
+      <div class="graficos-row">
+        <div class="grafico-card">
+          <h3>💰 Saldo Restante por Prestador</h3>
+          <div id="barrasContainer"></div>
+        </div>
+        <div class="grafico-card">
+          <h3>🔵 Distribuição por Status</h3>
+          <div id="donutContainer" class="donut-wrapper"></div>
+        </div>
+      </div>
+      <hr style="margin:20px 0">
+      <h3 style="margin-bottom:10px">📋 Todos os Contratos</h3>
+      <div class="tabela-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID Contrato</th>
+              <th>Prestador</th>
+              <th>Tipo</th>
+              <th>Vigência</th>
+              <th>Dias</th>
+              <th>V.Atualizado</th>
+              <th>Consumido</th>
+              <th>Saldo</th>
+              <th>%</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaContratos"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TAB CONTRATOS ========== -->
+  <div class="conteudo-tab" id="tab-contratos">
+    <h2 style="color:#0a4d3b;margin-bottom:16px">📋 Cadastrar Novo Contrato</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>ID do Contrato *</label>
+        <input type="text" id="f-id" placeholder="Ex: 001/2027-FMS/PMM" required>
+      </div>
+      <div class="form-group">
+        <label>Prestador *</label>
+        <input type="text" id="f-prestador" placeholder="Nome da empresa" required>
+      </div>
+      <div class="form-group">
+        <label>Tipo de Contrato</label>
+        <select id="f-tipo">
+          <option value="Licitação">Licitação</option>
+          <option value="Inexigibilidade">Inexigibilidade</option>
+          <option value="Dispensa">Dispensa</option>
+          <option value="Pregão">Pregão</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Valor Inicial (R$) *</label>
+        <input type="number" id="f-valor" step="0.01" min="0" required>
+      </div>
+      <div class="form-group">
+        <label>Data Início</label>
+        <input type="date" id="f-data-inicio">
+      </div>
+      <div class="form-group">
+        <label>Data Fim *</label>
+        <input type="date" id="f-data-fim" required>
+      </div>
+    </div>
+    <div class="form-group" style="max-width:700px;margin-top:4px">
+      <label>Objeto</label>
+      <textarea id="f-objeto" placeholder="Descrição do objeto contratual..."></textarea>
+    </div>
+    <button class="btn-submit" onclick="cadastrarContrato()" id="btnCadContrato">💾 Cadastrar Contrato</button>
+    <div class="form-msg" id="msgContrato"></div>
+  </div>
+
+  <!-- ========== TAB PRODUÇÃO ========== -->
+  <div class="conteudo-tab" id="tab-producao">
+    <h2 style="color:#0a4d3b;margin-bottom:16px">💰 Lançar Faturamento Mensal</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Contrato *</label>
+        <select id="fp-contrato"><option value="">— Selecione —</option></select>
+      </div>
+      <div class="form-group">
+        <label>Competência (mês/ano) *</label>
+        <input type="month" id="fp-competencia" required>
+      </div>
+      <div class="form-group">
+        <label>Tipo de Repasse *</label>
+        <select id="fp-tipo">
+          <option value="Fixo">Fixo</option>
+          <option value="Repasse Fixo">Repasse Fixo</option>
+          <option value="Repasse Variável">Repasse Variável</option>
+          <option value="Por Exame">Por Exame</option>
+          <option value="Percentual">Percentual</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$) *</label>
+        <input type="number" id="fp-valor" step="0.01" min="0" required>
+      </div>
+    </div>
+    <button class="btn-submit" onclick="lancarProducao()" id="btnProd">💾 Lançar Produção</button>
+    <div class="form-msg" id="msgProducao"></div>
+    <hr style="margin:24px 0">
+    <h3 style="margin-bottom:10px">📄 Últimos Lançamentos</h3>
+    <div class="tabela-wrapper" id="tabelaProdWrapper">
+      <table>
+        <thead><tr><th>ID</th><th>Contrato</th><th>Competência</th><th>Tipo</th><th>Valor</th></tr></thead>
+        <tbody id="tabelaProducao"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ========== TAB ADITIVOS ========== -->
+  <div class="conteudo-tab" id="tab-aditivos">
+    <h2 style="color:#0a4d3b;margin-bottom:16px">📝 Lançar Aditivo</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Contrato *</label>
+        <select id="fa-contrato"><option value="">— Selecione —</option></select>
+      </div>
+      <div class="form-group">
+        <label>Data do Aditivo *</label>
+        <input type="date" id="fa-data" required>
+      </div>
+      <div class="form-group">
+        <label>Tipo de Aditivo *</label>
+        <select id="fa-tipo">
+          <option value="Prazo">Prazo</option>
+          <option value="Valor">Valor</option>
+          <option value="Escopo">Escopo</option>
+          <option value="Acréscimo">Acréscimo</option>
+          <option value="Prorrogação">Prorrogação</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$) *</label>
+        <input type="number" id="fa-valor" step="0.01" min="0" placeholder="0,00" required>
+      </div>
+    </div>
+    <button class="btn-submit" onclick="lancarAditivo()" id="btnAditivo">💾 Lançar Aditivo</button>
+    <div class="form-msg" id="msgAditivo"></div>
+    <hr style="margin:24px 0">
+    <h3 style="margin-bottom:10px">📄 Aditivos Lançados</h3>
+    <div class="tabela-wrapper">
+      <table>
+        <thead><tr><th>ID</th><th>Contrato</th><th>Data</th><th>Tipo</th><th>Valor</th></tr></thead>
+        <tbody id="tabelaAditivos"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =============================================================
+// CONFIGURAÇÃO — COLE A URL DO SEU WEB APP AQUI
+// =============================================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbzPZuaqFOoqjDZpaonwu7ih3-j_e4Mn8-A9Np0Dj1yxnttJDr6ihlkRz4qbMvSUQ15o/exec';
+
+// =============================================================
+// UTILITÁRIOS
+// =============================================================
+function formatarMoeda(valor) {
+  return 'R$ ' + Number(valor).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function mostrarErro(msg, container) {
+  const el = document.getElementById(container);
+  if (!el) return alert(msg);
+  el.textContent = '❌ ' + msg;
+  el.className = 'form-msg erro';
+}
+
+function mostrarSucesso(msg, container) {
+  const el = document.getElementById(container);
+  if (!el) return alert(msg);
+  el.textContent = '✅ ' + msg;
+  el.className = 'form-msg sucesso';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+function limparMsg(container) {
+  const el = document.getElementById(container);
+  if (el) { el.textContent = ''; el.className = 'form-msg'; }
+}
+
+// =============================================================
+// TABS
+// =============================================================
+function abrirTab(nome, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.conteudo-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + nome).classList.add('active');
+  
+  // Carrega dados sob demanda
+  if (nome === 'producao' || nome === 'aditivos') carregarSelects();
+  if (nome === 'producao') carregarTabelaProducao();
+  if (nome === 'aditivos') carregarTabelaAditivos();
+}
+
+// =============================================================
+// DASHBOARD — GET
+// =============================================================
+async function carregarDashboard() {
+  const btn = document.getElementById('btnRefresh');
+  btn.disabled = true;
+  btn.textContent = '⏳ Carregando...';
+  
+  document.getElementById('loadingDashboard').style.display = 'flex';
+  document.getElementById('conteudoDashboard').style.display = 'none';
+
+  try {
+    const resp = await fetch(API_URL + '?action=getDashboard');
+    const json = await resp.json();
+    
+    if (!json.success) throw new Error(json.error || 'Erro ao carregar dashboard');
+    
+    const d = json.data;
+    renderizarMetricas(d.metricas);
+    renderizarStatusCards(d.metricas);
+    renderizarAlertas(d.alertas);
+    renderizarBarras(d.graficos.saldoPorPrestador);
+    renderizarDonut(d.metricas);
+    renderizarTabela(d.contratos);
+    
+    const dt = d.dataAtualizacao || new Date().toLocaleString('pt-BR');
+    document.getElementById('ultimaAtualizacao').textContent = '🕐 ' + dt;
+    
+    document.getElementById('loadingDashboard').style.display = 'none';
+    document.getElementById('conteudoDashboard').style.display = 'block';
+    
+  } catch (e) {
+    document.getElementById('loadingDashboard').innerHTML = '❌ Erro ao carregar: ' + e.message;
+    console.error(e);
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '🔄 Atualizar dados';
+}
+
+function renderizarMetricas(m) {
+  const container = document.getElementById('metricasCards');
+  const cards = [
+    { rotulo: 'Contratos Ativos', valor: m.totalContratos, icone: '📋' },
+    { rotulo: 'Valor Total Contratado', valor: formatarMoeda(m.valorTotalContratos), icone: '💰' },
+    { rotulo: 'Total Gasto', valor: formatarMoeda(m.totalGastoGeral), icone: '💸' },
+    { rotulo: 'Saldo Total Restante', valor: formatarMoeda(m.saldoTotalGeral), icone: '🔄' },
+  ];
+  container.innerHTML = cards.map(c => `
+    <div class="card-metrica">
+      <div class="icone">${c.icone}</div>
+      <div class="rotulo">${c.rotulo}</div>
+      <div class="valor">${c.valor}</div>
+    </div>
+  `).join('');
+}
+
+function renderizarStatusCards(m) {
+  const container = document.getElementById('statusCards');
+  const itens = [
+    { label: '🔴 VENCIDOS', qtd: m.qtdVencidos, cor: '#e74c3c' },
+    { label: '🟠 URGENTE (30d)', qtd: m.qtdUrgente, cor: '#e67e22' },
+    { label: '🟡 ATENÇÃO (60d)', qtd: m.qtdAtencao, cor: '#f1c40f' },
+    { label: '🟢 AVISO (90d)', qtd: m.qtdAviso, cor: '#2ecc71' },
+    { label: '⚠️ SALDO CRÍTICO', qtd: m.qtdSaldoCritico, cor: '#d84315' },
+    { label: '✅ NORMAIS', qtd: m.qtdNormal, cor: '#27ae60' },
+  ];
+  container.innerHTML = itens.map(i => `
+    <div class="card-status" style="background:${i.cor}">
+      <div class="qtd">${i.qtd}</div>
+      <div class="label">${i.label}</div>
+    </div>
+  `).join('');
+}
+
+function renderizarAlertas(alertas) {
+  const container = document.getElementById('alertasContainer');
+  const todos = [...(alertas.prazo || []), ...(alertas.saldo || [])];
+  if (!todos.length) {
+    container.innerHTML = '<div class="alerta-item atencao">✅ Nenhum alerta ativo no momento.</div>';
+    return;
+  }
+  container.innerHTML = '<h3 style="margin-bottom:10px">🚨 Alertas</h3>' +
+    todos.map(a => {
+      const nivel = a.nivel || 'atencao';
+      const texto = a.dias !== undefined 
+        ? `🔴 <strong>${a.id}</strong> — Vence em ${a.dias} dias (${a.dataFim})`
+        : `⚠️ <strong>${a.id}</strong> — Saldo consumido: ${(a.consumo * 100).toFixed(1)}%`;
+      return `<div class="alerta-item ${nivel}">${texto}</div>`;
+    }).join('');
+}
+
+function renderizarBarras(gr) {
+  const container = document.getElementById('barrasContainer');
+  if (!gr || !gr.labels || !gr.labels.length) {
+    container.innerHTML = '<p style="color:#888">Nenhum dado disponível.</p>';
+    return;
+  }
+  const max = Math.max(...gr.values, 1);
+  const cores = ['#2ecc71', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#e74c3c'];
+  container.innerHTML = gr.labels.map((l, i) => `
+    <div class="barra-container">
+      <div class="barra-label">
+        <span>${l}</span>
+        <span>${formatarMoeda(gr.values[i])}</span>
+      </div>
+      <div class="barra-wrapper">
+        <div class="barra-preenchida" style="width:${(gr.values[i]/max*100)}%;background:${cores[i % cores.length]}">
+          ${gr.values[i] > max * 0.15 ? formatarMoeda(gr.values[i]) : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderizarDonut(m) {
+  const container = document.getElementById('donutContainer');
+  const data = [
+    { label: 'Vencidos', qtd: m.qtdVencidos, cor: '#e74c3c' },
+    { label: 'Urgente (30d)', qtd: m.qtdUrgente, cor: '#e67e22' },
+    { label: 'Atenção (60d)', qtd: m.qtdAtencao, cor: '#f1c40f' },
+    { label: 'Aviso (90d)', qtd: m.qtdAviso, cor: '#3498db' },
+    { label: 'Normal', qtd: m.qtdNormal, cor: '#2ecc71' },
+  ];
+  const total = data.reduce((s, d) => s + d.qtd, 0) || 1;
+  
+  let offset = 0;
+  const circunf = 2 * Math.PI * 70;
+  const fatias = data.filter(d => d.qtd > 0).map(d => {
+    const percent = d.qtd / total;
+    const comprimento = percent * circunf;
+    const dash = `${comprimento} ${circunf - comprimento}`;
+    const inicio = offset;
+    offset += comprimento;
+    return { ...d, dash, inicio, percent };
+  });
+
+  container.innerHTML = `
+    <div class="donut">
+      <svg width="160" height="160" viewBox="0 0 160 160">
+        <circle cx="80" cy="80" r="70" fill="none" stroke="#e9ecef" stroke-width="28"/>
+        ${fatias.map(f => `<circle cx="80" cy="80" r="70" fill="none" stroke="${f.cor}" stroke-width="28" stroke-dasharray="${f.dash}" stroke-dashoffset="${-f.inicio}" transform="rotate(-90,80,80)" style="transition:stroke-dasharray 0.6s"/>`).join('')}
+        <text x="80" y="75" text-anchor="middle" font-size="28" font-weight="700" fill="#333">${total}</text>
+        <text x="80" y="95" text-anchor="middle" font-size="11" fill="#888">contratos</text>
+      </svg>
+    </div>
+    <div class="donut-legenda">
+      ${data.map(d => `<div class="item"><span class="bolinha" style="background:${d.cor}"></span> ${d.label} (${d.qtd})</div>`).join('')}
+    </div>
+  `;
+}
+
+function renderizarTabela(contratos) {
+  const tbody = document.getElementById('tabelaContratos');
+  if (!contratos || !contratos.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#888">Nenhum contrato.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = contratos.map(c => {
+    const bg = c.status.includes('VENCIDO') ? '#ffeef0' :
+               c.status.includes('URGENTE') ? '#fff3e0' :
+               c.status.includes('60d') ? '#fffde7' :
+               c.status.includes('90d') ? '#e8f5e9' : '';
+    const corBadge = c.status.includes('VENCIDO') ? '#e74c3c' :
+                     c.status.includes('URGENTE') ? '#e67e22' :
+                     c.status.includes('CRÍTICO') ? '#d84315' :
+                     c.status.includes('60d') ? '#f1c40f' :
+                     c.status.includes('90d') ? '#2ecc71' : '#27ae60';
+    const textBadge = c.status.includes('VENCIDO') ? '#fff' :
+                      c.status.includes('60d') ? '#333' : '#fff';
+    return `<tr style="background:${bg}">
+      <td><strong>${c.id}</strong></td>
+      <td>${c.prestador.substring(0,40)}...</td>
+      <td>${c.tipo}</td>
+      <td>${c.dataInicio} → ${c.dataFim}</td>
+      <td>${c.diasRestantes >= 999 ? '—' : c.diasRestantes + 'd'}</td>
+      <td>${formatarMoeda(c.valorAtualizado)}</td>
+      <td>${formatarMoeda(c.totalConsumido)}</td>
+      <td><strong>${formatarMoeda(c.saldoRestante)}</strong></td>
+      <td>${(c.percentualConsumo * 100).toFixed(1)}%</td>
+      <td><span class="status-badge" style="background:${corBadge};color:${textBadge}">${c.status.split('|')[0].trim()}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// =============================================================
+// CARREGAR SELECTS (contratos)
+// =============================================================
+async function carregarSelects() {
+  try {
+    const resp = await fetch(API_URL + '?action=getContratosDetalhados');
+    const json = await resp.json();
+    if (!json.success) return;
+    
+    const opts = json.data.map(c => `<option value="${c.id}">${c.id} — ${c.prestador.substring(0,30)}</option>`).join('');
+    document.getElementById('fp-contrato').innerHTML = '<option value="">— Selecione —</option>' + opts;
+    document.getElementById('fa-contrato').innerHTML = '<option value="">— Selecione —</option>' + opts;
+  } catch (e) { console.error(e); }
+}
+
+// =============================================================
+// TABELA PRODUÇÃO
+// =============================================================
+async function carregarTabelaProducao() {
+  try {
+    const resp = await fetch(API_URL + '?action=getProducao');
+    const json = await resp.json();
+    if (!json.success) return;
+    const tbody = document.getElementById('tabelaProducao');
+    const dados = json.data || [];
+    tbody.innerHTML = dados.slice(-10).reverse().map(p => `<tr>
+      <td>${p.id}</td><td>${p.contrato}</td><td>${p.competencia}</td><td>${p.tipo}</td>
+      <td>${formatarMoeda(p.valor)}</td>
+    </tr>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+// =============================================================
+// TABELA ADITIVOS
+// =============================================================
+async function carregarTabelaAditivos() {
+  try {
+    const resp = await fetch(API_URL + '?action=getAditivos');
+    const json = await resp.json();
+    if (!json.success) return;
+    const tbody = document.getElementById('tabelaAditivos');
+    const dados = json.data || [];
+    tbody.innerHTML = dados.slice(-10).reverse().map(a => `<tr>
+      <td>${a.id}</td><td>${a.contrato}</td><td>${a.data}</td><td>${a.tipo}</td>
+      <td>${formatarMoeda(a.valor)}</td>
+    </tr>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+// =============================================================
+// POST — CADASTRAR CONTRATO
+// =============================================================
+async function cadastrarContrato() {
+  const btn = document.getElementById('btnCadContrato');
+  btn.disabled = true;
+  limparMsg('msgContrato');
+
+  const id = document.getElementById('f-id').value.trim();
+  const prestador = document.getElementById('f-prestador').value.trim();
+  const tipo = document.getElementById('f-tipo').value;
+  const valor = document.getElementById('f-valor').value;
+  const dataInicio = document.getElementById('f-data-inicio').value;
+  const dataFim = document.getElementById('f-data-fim').value;
+  const objeto = document.getElementById('f-objeto').value.trim();
+
+  if (!id) { mostrarErro('ID do contrato é obrigatório.', 'msgContrato'); btn.disabled = false; return; }
+  if (!prestador) { mostrarErro('Prestador é obrigatório.', 'msgContrato'); btn.disabled = false; return; }
+  if (!dataFim) { mostrarErro('Data fim é obrigatória.', 'msgContrato'); btn.disabled = false; return; }
+
+  try {
+    const body = new URLSearchParams({
+      action: 'inserirContrato',
+      id: id,
+      prestador: prestador,
+      tipo: tipo,
+      valorInicial: valor || '0',
+      dataInicio: dataInicio || '',
+      dataFim: dataFim,
+      objeto: objeto
+    });
+
+    const resp = await fetch(API_URL, { method: 'POST', body: body });
+    const json = await resp.json();
+
+    if (json.success) {
+      mostrarSucesso(json.message || 'Contrato cadastrado!', 'msgContrato');
+      document.getElementById('f-id').value = '';
+      document.getElementById('f-prestador').value = '';
+      document.getElementById('f-valor').value = '';
+      document.getElementById('f-objeto').value = '';
+      carregarSelects();
+    } else {
+      mostrarErro(json.error || 'Erro ao cadastrar', 'msgContrato');
+    }
+  } catch (e) {
+    mostrarErro(e.message, 'msgContrato');
+  }
+  btn.disabled = false;
+}
+
+// =============================================================
+// POST — LANÇAR PRODUÇÃO
+// =============================================================
+async function lancarProducao() {
+  const btn = document.getElementById('btnProd');
+  btn.disabled = true;
+  limparMsg('msgProducao');
+
+  const contratoId = document.getElementById('fp-contrato').value;
+  const competencia = document.getElementById('fp-competencia').value;
+  const tipo = document.getElementById('fp-tipo').value;
+  const valor = document.getElementById('fp-valor').value;
+
+  if (!contratoId) { mostrarErro('Selecione um contrato.', 'msgProducao'); btn.disabled = false; return; }
+  if (!competencia) { mostrarErro('Informe a competência.', 'msgProducao'); btn.disabled = false; return; }
+  if (!valor) { mostrarErro('Informe o valor.', 'msgProducao'); btn.disabled = false; return; }
+
+  try {
+    const body = new URLSearchParams({
+      action: 'inserirProducao',
+      contratoId: contratoId,
+      competencia: competencia,
+      tipoRepasse: tipo,
+      valor: valor
+    });
+
+    const resp = await fetch(API_URL, { method: 'POST', body: body });
+    const json = await resp.json();
+
+    if (json.success) {
+      mostrarSucesso(json.message || 'Produção lançada!', 'msgProducao');
+      document.getElementById('fp-valor').value = '';
+      carregarTabelaProducao();
+    } else {
+      mostrarErro(json.error || 'Erro ao lançar', 'msgProducao');
+    }
+  } catch (e) {
+    mostrarErro(e.message, 'msgProducao');
+  }
+  btn.disabled = false;
+}
+
+// =============================================================
+// POST — LANÇAR ADITIVO
+// =============================================================
+async function lancarAditivo() {
+  const btn = document.getElementById('btnAditivo');
+  btn.disabled = true;
+  limparMsg('msgAditivo');
+
+  const contratoId = document.getElementById('fa-contrato').value;
+  const data = document.getElementById('fa-data').value;
+  const tipo = document.getElementById('fa-tipo').value;
+  const valor = document.getElementById('fa-valor').value;
+
+  if (!contratoId) { mostrarErro('Selecione um contrato.', 'msgAditivo'); btn.disabled = false; return; }
+  if (!data) { mostrarErro('Informe a data.', 'msgAditivo'); btn.disabled = false; return; }
+  if (!valor) { mostrarErro('Informe o valor.', 'msgAditivo'); btn.disabled = false; return; }
+
+  try {
+    const body = new URLSearchParams({
+      action: 'inserirAditivo',
+      contratoId: contratoId,
+      data: data,
+      tipoAditivo: tipo,
+      valor: valor
+    });
+
+    const resp = await fetch(API_URL, { method: 'POST', body: body });
+    const json = await resp.json();
+
+    if (json.success) {
+      mostrarSucesso(json.message || 'Aditivo lançado!', 'msgAditivo');
+      document.getElementById('fa-valor').value = '';
+      document.getElementById('fa-data').value = '';
+      carregarTabelaAditivos();
+    } else {
+      mostrarErro(json.error || 'Erro ao lançar', 'msgAditivo');
+    }
+  } catch (e) {
+    mostrarErro(e.message, 'msgAditivo');
+  }
+  btn.disabled = false;
+}
+
+// =============================================================
+// INICIALIZAÇÃO
+// =============================================================
+carregarDashboard();
+carregarSelects();
+</script>
+
+</body>
+</html>
