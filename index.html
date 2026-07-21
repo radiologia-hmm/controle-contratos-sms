@@ -673,33 +673,9 @@ async function carregarTabelaAditivos() {
   } catch(e) { console.error(e); }
 }
 
-async function cadastrarContrato() {
-  var btn = document.getElementById('btnCadContrato');
-  btn.disabled = true;
-  var id = document.getElementById('f-id').value.trim();
-  var prestador = document.getElementById('f-prestador').value.trim();
-  var tipo = document.getElementById('f-tipo').value;
-  var valor = document.getElementById('f-valor').value;
-  var di = document.getElementById('f-data-inicio').value;
-  var df = document.getElementById('f-data-fim').value;
-  if (!id) { mostrarErro('ID do contrato é obrigatório.', 'msgContrato'); btn.disabled = false; return; }
-  if (!prestador) { mostrarErro('Prestador é obrigatório.', 'msgContrato'); btn.disabled = false; return; }
-  if (!df) { mostrarErro('Data fim é obrigatória.', 'msgContrato'); btn.disabled = false; return; }
-  try {
-    var body = new URLSearchParams({ action: 'inserirContrato', id: id, prestador: prestador, tipo: tipo || 'Licitação', valorInicial: valor || '0', dataInicio: di || '', dataFim: df, objeto: document.getElementById('f-objeto').value.trim() });
-    var r = await fetch(API_URL, { method: 'POST', body: body });
-    var j = await r.json();
-    if (j.success) {
-      mostrarSucesso(j.message || 'Contrato cadastrado!', 'msgContrato');
-      document.getElementById('f-id').value = '';
-      document.getElementById('f-prestador').value = '';
-      document.getElementById('f-valor').value = '';
-      document.getElementById('f-objeto').value = '';
-      carregarSelects();
-    } else { mostrarErro(j.error || 'Erro', 'msgContrato'); }
-  } catch(e) { mostrarErro(e.message, 'msgContrato'); }
-  btn.disabled = false;
-}
+// ==========================
+//  FUNÇÕES SUBSTITUÍDAS (CORRIGIDAS)
+// ==========================
 
 async function lancarProducao() {
   var btn = document.getElementById('btnProd');
@@ -712,8 +688,9 @@ async function lancarProducao() {
   if (!comp) { mostrarErro('Informe a competência.', 'msgProducao'); btn.disabled = false; return; }
   if (!v) { mostrarErro('Informe o valor.', 'msgProducao'); btn.disabled = false; return; }
   try {
-    var body = new URLSearchParams({ action: 'inserirProducao', contratoId: c, competencia: comp, tipoRepasse: t, valor: v });
-    var r = await fetch(API_URL, { method: 'POST', body: body });
+    var params = new URLSearchParams({ action: 'inserirProducao', contratoId: c, competencia: comp, tipoRepasse: t, valor: v });
+    var url = API_URL + '?action=inserirProducao&contratoId=' + encodeURIComponent(c) + '&competencia=' + encodeURIComponent(comp) + '&tipoRepasse=' + encodeURIComponent(t) + '&valor=' + encodeURIComponent(v);
+    var r = await fetch(url, { method: 'POST', body: params });
     var j = await r.json();
     if (j.success) { mostrarSucesso(j.message || 'Produção lançada!', 'msgProducao'); document.getElementById('fp-valor').value = ''; carregarTabelaProducao(); }
     else { mostrarErro(j.error || 'Erro', 'msgProducao'); }
@@ -732,12 +709,43 @@ async function lancarAditivo() {
   if (!d) { mostrarErro('Informe a data.', 'msgAditivo'); btn.disabled = false; return; }
   if (!v) { mostrarErro('Informe o valor.', 'msgAditivo'); btn.disabled = false; return; }
   try {
-    var body = new URLSearchParams({ action: 'inserirAditivo', contratoId: c, data: d, tipoAditivo: t, valor: v });
-    var r = await fetch(API_URL, { method: 'POST', body: body });
+    var params = new URLSearchParams({ action: 'inserirAditivo', contratoId: c, data: d, tipoAditivo: t, valor: v });
+    var url = API_URL + '?action=inserirAditivo&contratoId=' + encodeURIComponent(c) + '&data=' + encodeURIComponent(d) + '&tipoAditivo=' + encodeURIComponent(t) + '&valor=' + encodeURIComponent(v);
+    var r = await fetch(url, { method: 'POST', body: params });
     var j = await r.json();
     if (j.success) { mostrarSucesso(j.message || 'Aditivo lançado!', 'msgAditivo'); document.getElementById('fa-valor').value = ''; document.getElementById('fa-data').value = ''; carregarTabelaAditivos(); }
     else { mostrarErro(j.error || 'Erro', 'msgAditivo'); }
   } catch(e) { mostrarErro(e.message, 'msgAditivo'); }
+  btn.disabled = false;
+}
+
+async function cadastrarContrato() {
+  var btn = document.getElementById('btnCadContrato');
+  btn.disabled = true;
+  var id = document.getElementById('f-id').value.trim();
+  var prestador = document.getElementById('f-prestador').value.trim();
+  var tipo = document.getElementById('f-tipo').value;
+  var valor = document.getElementById('f-valor').value;
+  var di = document.getElementById('f-data-inicio').value;
+  var df = document.getElementById('f-data-fim').value;
+  var objeto = document.getElementById('f-objeto').value.trim();
+  if (!id) { mostrarErro('ID do contrato é obrigatório.', 'msgContrato'); btn.disabled = false; return; }
+  if (!prestador) { mostrarErro('Prestador é obrigatório.', 'msgContrato'); btn.disabled = false; return; }
+  if (!df) { mostrarErro('Data fim é obrigatória.', 'msgContrato'); btn.disabled = false; return; }
+  try {
+    var params = new URLSearchParams({ action: 'inserirContrato', id: id, prestador: prestador, tipo: tipo || 'Licitação', valorInicial: valor || '0', dataInicio: di || '', dataFim: df, objeto: objeto });
+    var url = API_URL + '?action=inserirContrato&id=' + encodeURIComponent(id) + '&prestador=' + encodeURIComponent(prestador) + '&tipo=' + encodeURIComponent(tipo || 'Licitação') + '&valorInicial=' + encodeURIComponent(valor || '0') + '&dataInicio=' + encodeURIComponent(di || '') + '&dataFim=' + encodeURIComponent(df);
+    var r = await fetch(url, { method: 'POST', body: params });
+    var j = await r.json();
+    if (j.success) {
+      mostrarSucesso(j.message || 'Contrato cadastrado!', 'msgContrato');
+      document.getElementById('f-id').value = '';
+      document.getElementById('f-prestador').value = '';
+      document.getElementById('f-valor').value = '';
+      document.getElementById('f-objeto').value = '';
+      carregarSelects();
+    } else { mostrarErro(j.error || 'Erro', 'msgContrato'); }
+  } catch(e) { mostrarErro(e.message, 'msgContrato'); }
   btn.disabled = false;
 }
 
