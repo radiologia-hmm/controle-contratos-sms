@@ -26,7 +26,6 @@ def init_db():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Tabela de Usuários com vinculação de Pasta/Categoria
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,23 +33,21 @@ def init_db():
                 senha TEXT NOT NULL,
                 nome TEXT NOT NULL,
                 perfil TEXT NOT NULL,
-                categoria_vinculada TEXT -- Ex: 'Diagnóstico por Imagem' ou 'TODAS'
+                categoria_vinculada TEXT
             )
         """)
         
-        # Usuários Iniciais
         cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (1, 'denisval', '123456', 'Denisval Rodrigues', 'Coordenador de Diagnóstico por Imagem', 'Diagnóstico por Imagem')")
         cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (2, 'luana', '123456', 'Luana', 'Diretora DMAC', 'TODAS')")
         cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (3, 'admin', '123456', 'Administrador do Sistema', 'Administrador Geral', 'TODAS')")
 
-        # Tabela de Contratos incluindo 'categoria'
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS contratos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 numero_contrato TEXT UNIQUE NOT NULL,
                 empresa TEXT NOT NULL,
                 objeto TEXT NOT NULL,
-                categoria TEXT NOT NULL, -- Ex: Diagnóstico por Imagem, Laboratório, etc.
+                categoria TEXT NOT NULL,
                 valor_total REAL NOT NULL,
                 data_inicio DATE NOT NULL,
                 data_fim DATE NOT NULL,
@@ -58,7 +55,6 @@ def init_db():
             )
         """)
 
-        # Tabela de Aditivos
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS aditivos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,7 +66,6 @@ def init_db():
             )
         """)
 
-        # Tabela de Despesas / Produção Mensal
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS despesas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +83,6 @@ def init_db():
 
 init_db()
 
-# Schemas Pydantic
 class LoginSchema(BaseModel):
     usuario: str
     senha: str
@@ -177,6 +171,18 @@ def criar_contrato(c: ContratoSchema):
         INSERT INTO contratos (numero_contrato, empresa, objeto, categoria, valor_total, data_inicio, data_fim)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (c.numero_contrato, c.empresa, c.objeto, c.categoria, c.valor_total, c.data_inicio, c.data_fim))
+    conn.commit()
+    return {"status": "sucesso"}
+
+@app.put("/api/contratos/{contrato_id}")
+def editar_contrato(contrato_id: int, c: ContratoSchema):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE contratos 
+        SET numero_contrato = ?, empresa = ?, objeto = ?, categoria = ?, valor_total = ?, data_inicio = ?, data_fim = ?
+        WHERE id = ?
+    """, (c.numero_contrato, c.empresa, c.objeto, c.categoria, c.valor_total, c.data_inicio, c.data_fim, contrato_id))
     conn.commit()
     return {"status": "sucesso"}
 
