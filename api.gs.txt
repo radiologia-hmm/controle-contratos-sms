@@ -1,0 +1,464 @@
+/**
+ * Api.gs — CAMADA DE API
+ * CORREÇÃO: doPost agora também lê parâmetros da URL (query string)
+ * como fallback para o redirect do Google Apps Script
+ */
+
+function doGet(e) {
+  try {
+    var params = e && e.parameter ? e.parameter : {};
+    var action = params.action || '';
+    
+    // Tenta processar actions de POST também (fallback para redirect)
+    if (action === 'inserirProducao' || action === 'inserirAditivo' || action === 'inserirContrato') {
+      return doPost(e);
+    }
+    
+    var result = {};
+    switch (action) {
+      case 'getDashboard': result = obterDashboardCompleto(); break;
+      case 'getContratos': result = { success: true, data: getContratos() }; break;
+      case 'getContratosDetalhados': result = { success: true, data: listarContratosDetalhados() }; break;
+      case 'getProducao': result = { success: true, data: obterTodaProducao() }; break;
+      case 'getAditivos': result = { success: true, data: obterTodosAditivos() }; break;
+      default:
+        result = action ? { success: false, error: 'Ação desconhecida: ' + action } : obterDashboardCompleto();
+    }
+    return entregarJSON(result);
+  } catch (erro) {
+    return entregarJSON({ success: false, error: erro.message });
+  }
+}
+
+function doPost(e) {
+  try {
+    // ============================================================
+    // CORREÇÃO CRÍTICA: Extrai parâmetros de TODAS as fontes
+    // 1. e.parameter (query string da URL)
+    // 2. e.postData.contents (POST body)
+    // 3. Combina ambos, priorizando o que veio primeiro
+    // ============================================================
+    var params = {};
+    
+    // Fonte 1: query string da URL (sempre funciona)
+    if (e && e.parameter) {
+      for (var chave in e.parameter) {
+        params[chave] = e.parameter[chave];
+      }
+    }
+    
+    // Fonte 2: POST body (pode ser perdido no redirect)
+    if (e && e.postData && e.postData.contents) {
+      try {
+        var tipo = e.postData.type || '';
+        var corpo = e.postData.contents;
+        
+        // Se for JSON
+        if (tipo.indexOf('json') >= 0) {
+          var jsonData = JSON.parse(corpo);
+          for (var cj in jsonData) {
+            params[cj] = jsonData[cj];
+          }
+        } 
+        // Se for URL-encoded (URLSearchParams)
+        else {
+          var partes = corpo.split('&');
+          for (var p = 0; p < partes.length; p++) {
+            var par = partes[p].split('=');
+            if (par.length === 2) {
+              params[decodeURIComponent(par[0])] = decodeURIComponent(par[1]);
+            }
+          }
+        }
+      } catch (eJson) {}
+    }
+    
+    var action = params.action || '';
+    console.log('[API] doPost params:', JSON.stringify(params));
+    
+    if (!action && params._action) action = params._action;
+    
+    var result = {};
+    switch (action) {
+      case 'inserirProducao':
+        result = { success: true, message: inserirProducao(
+          params.contratoId || params.contrato_id || '',
+          params.competencia || '',
+          params.tipoRepasse || params.tipo_repasse || '',
+          parseFloat(params.valor || params.valor_producao || 0) || 0
+        )};
+        break;
+      case 'inserirAditivo':
+        result = { success: true, message: inserirAditivo(
+          params.contratoId || params.contrato_id || '',
+          params.data || params.data_aditivo || '',
+          params.tipoAditivo || params.tipo_aditivo || '',
+          parseFloat(params.valor || params.valor_aditivo || 0) || 0
+        )};
+        break;
+      case 'inserirContrato':
+        result = inserirNovoContrato(params);
+        break;
+      default:
+        result = { success: false, error: 'Ação desconhecida: ' + action + '. Params: ' + JSON.stringify(params) };
+    }
+    return entregarJSON(result);
+  } catch (erro) {
+    return entregarJSON({ success: false, error: erro.message });
+  }
+}
+
+function entregarJSON(dados) {
+  return ContentService.createTextOutput(JSON.stringify(dados)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ======================================================================
+// FUNÇÃO PRINCIPAL — CONTAGEM EXPLÍCITA (sem duplicação)
+// ======================================================================
+function obterDashboardCompleto() {
+  var ss = SpreadsheetApp.openById(ID_PLANILHA);
+  var hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  function normalizarPercentual(valor) {
+    if (valor === null || valor === undefined || valor === '') return 0;
+    if (typeof valor === 'string') {
+      var limpo = valor.replace('%', '').replace(',', '.').trim();
+      var numStr = Number(limpo);
+      if (isNaN(numStr)) return 0;
+      if (numStr > 1 && numStr <= 100) return numStr / 100;
+      return numStr;
+    }
+    var num = Number(valor);
+    if (isNaN(num)) return 0;
+    if (num > 1 && num <= 100) return num / 100;
+    return num;
+  }
+
+  function calcularPercentualVigencia(dataInicio, dataFim, dataRef) {
+    if (!dataInicio || !dataFim) return 0;
+    if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) return 0;
+
+    var inicio = new Date(dataInicio);
+    var fim = new Date(dataFim);
+    var ref = new Date(dataRef);
+    inicio.setHours(0, 0, 0, 0);
+    fim.setHours(0, 0, 0, 0);
+    ref.setHours(0, 0, 0, 0);
+
+    var totalMs = fim.getTime() - inicio.getTime();
+    if (totalMs <= 0) return ref.getTime() >= fim.getTime() ? 1 : 0;
+
+    var decorridoMs = ref.getTime() - inicio.getTime();
+    var perc = decorridoMs / totalMs;
+    if (perc < 0) return 0;
+    if (perc > 1) return 1;
+    return perc;
+  }
+  
+  var abaContratos = ss.getSheetByName('CONTRATOS');
+  var contratos = [];
+  var metricas = {
+    totalContratos: 0, valorTotalContratos: 0, totalGastoGeral: 0,
+    totalAditivosGeral: 0, saldoTotalGeral: 0,
+    qtdVencidos: 0, qtdUrgente: 0, qtdAtencao: 0, qtdAviso: 0,
+    qtdSaldoCritico: 0, qtdEsgotado: 0, qtdNormal: 0, qtdAlertas: 0
+  };
+  var alertasPrazo = [];
+  var alertasSaldo = [];
+  var labelsProvedores = [];
+  var dadosSaldoProvedores = [];
+  
+  if (abaContratos && abaContratos.getLastRow() > 1) {
+    var dadosContratos = abaContratos.getRange(2, 1, abaContratos.getLastRow() - 1, 14).getValues();
+    
+    for (var i = 0; i < dadosContratos.length; i++) {
+      var row = dadosContratos[i];
+      var idContrato = row[0];
+      if (!idContrato || idContrato.toString().trim() === '') continue;
+      
+      var idStr = idContrato.toString().trim();
+      var prestador = (row[1] || '').toString().trim();
+      var tipoContrato = (row[2] || '').toString().trim();
+      var objeto = (row[3] || '').toString().trim();
+      var valorInicial = Number(row[6]) || 0;
+      var totalAdit = Number(row[7]) || 0;
+      var valorAtual = Number(row[8]) || 0;
+      var totalConsumido = Number(row[9]) || 0;
+      var saldo = Number(row[10]) || 0;
+      var percConsumo = normalizarPercentual(row[11]);
+      
+      var dataInicio = row[4] ? new Date(row[4]) : null;
+      var dataFim = row[5] ? new Date(row[5]) : null;
+      var diasRestantes = 999;
+      var dataFimStr = '';
+      var dataInicioStr = dataInicio ? Utilities.formatDate(dataInicio, Session.getScriptTimeZone(), 'dd/MM/yyyy') : '';
+      var percVigencia = calcularPercentualVigencia(dataInicio, dataFim, hoje);
+      
+      if (dataFim && !isNaN(dataFim.getTime())) {
+        dataFim.setHours(0, 0, 0, 0);
+        diasRestantes = Math.ceil((dataFim - hoje) / (1000 * 60 * 60 * 24));
+        dataFimStr = Utilities.formatDate(dataFim, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+      }
+      
+      // =============================================
+      // CLASSIFICAÇÃO
+      // =============================================
+      var baseKey = 'NORMAL';
+      if (diasRestantes < 0) baseKey = 'VENCIDO';
+      else if (diasRestantes <= 30) baseKey = 'URGENTE';
+      else if (diasRestantes <= 60) baseKey = 'ATENCAO';
+      else if (diasRestantes <= 90) baseKey = 'AVISO';
+      
+      var overlayKey = '';
+      if (saldo <= 0 || percConsumo >= 1.0) overlayKey = 'ESGOTADO';
+      else if (saldo > 0 && (percConsumo >= 0.70 || percVigencia >= 0.70)) overlayKey = 'CRITICO';
+      
+      var nomesBase = { VENCIDO: 'VENCIDO', URGENTE: 'RENOVAÇÃO URGENTE (30d)', ATENCAO: 'RENOVAÇÃO (60d)', AVISO: 'RENOVAÇÃO (90d)', NORMAL: 'Normal' };
+      var statusFinal = nomesBase[baseKey];
+      if (overlayKey === 'ESGOTADO') statusFinal += ' | ESGOTADO';
+      else if (overlayKey === 'CRITICO') statusFinal += ' | CRÍTICO 70%';
+      
+      // =============================================
+      // CONTAGEM — CADA CONTRATO CONTA EM UMA ÚNICA CATEGORIA
+      // =============================================
+      metricas.totalContratos++;
+      metricas.valorTotalContratos += valorInicial;
+      metricas.totalAditivosGeral += totalAdit;
+      metricas.totalGastoGeral += totalConsumido;
+      
+      // REGRA: overlayKey TEM PRIORIDADE sobre baseKey
+      var categoriaContagem = 'NORMAL';
+      if (overlayKey === 'ESGOTADO') {
+        categoriaContagem = 'ESGOTADO';
+        metricas.qtdEsgotado++;
+      } else if (overlayKey === 'CRITICO') {
+        categoriaContagem = 'CRITICO';
+        metricas.qtdSaldoCritico++;
+      } else if (baseKey === 'VENCIDO') {
+        categoriaContagem = 'VENCIDO';
+        metricas.qtdVencidos++;
+      } else if (baseKey === 'URGENTE') {
+        categoriaContagem = 'URGENTE';
+        metricas.qtdUrgente++;
+      } else if (baseKey === 'ATENCAO') {
+        categoriaContagem = 'ATENCAO';
+        metricas.qtdAtencao++;
+      } else if (baseKey === 'AVISO') {
+        categoriaContagem = 'AVISO';
+        metricas.qtdAviso++;
+      } else {
+        categoriaContagem = 'NORMAL';
+        metricas.qtdNormal++;
+      }
+      
+      contratos.push({
+        id: idStr, prestador: prestador, tipo: tipoContrato, objeto: objeto,
+        dataInicio: dataInicioStr, dataFim: dataFimStr,
+        valorInicial: valorInicial, totalAditivos: totalAdit,
+        valorAtualizado: valorAtual, totalConsumido: totalConsumido,
+        saldoRestante: saldo, percentualConsumo: percConsumo, percentualVigencia: percVigencia,
+        status: statusFinal, diasRestantes: diasRestantes,
+        categoriaContagem: categoriaContagem
+      });
+      
+      var nomeCurto = prestador.length > 20 ? prestador.substring(0, 18) + '...' : prestador;
+      labelsProvedores.push(nomeCurto);
+      dadosSaldoProvedores.push(saldo);
+      
+      // Alertas de prazo
+      if (diasRestantes >= 0 && diasRestantes <= 90) {
+        var nivelPrazo = diasRestantes <= 30 ? 'critico' : (diasRestantes <= 60 ? 'urgente' : 'atencao');
+        alertasPrazo.push({ id: idStr, prestador: prestador, dias: diasRestantes, dataFim: dataFimStr, nivel: nivelPrazo });
+        metricas.qtdAlertas++;
+      }
+      
+      // Alertas de saldo (limiar 70%)
+      if (saldo <= 0 || percConsumo >= 1.0) {
+        alertasSaldo.push({ id: idStr, prestador: prestador, consumo: percConsumo, saldo: saldo, nivel: 'critico' });
+        metricas.qtdAlertas++;
+      } else if (saldo > 0 && (percConsumo >= 0.70 || percVigencia >= 0.70)) {
+        alertasSaldo.push({ id: idStr, prestador: prestador, consumo: percConsumo, vigencia: percVigencia, saldo: saldo, nivel: 'urgente' });
+        metricas.qtdAlertas++;
+      }
+    }
+  }
+
+  // Segurança: garante contagem exclusiva e consistente
+  var somaCategorias = metricas.qtdVencidos + metricas.qtdUrgente + metricas.qtdAtencao + metricas.qtdAviso + metricas.qtdSaldoCritico + metricas.qtdEsgotado + metricas.qtdNormal;
+  if (somaCategorias !== metricas.totalContratos) {
+    metricas.qtdNormal = Math.max(0, metricas.totalContratos - (metricas.qtdVencidos + metricas.qtdUrgente + metricas.qtdAtencao + metricas.qtdAviso + metricas.qtdSaldoCritico + metricas.qtdEsgotado));
+  }
+  
+  metricas.saldoTotalGeral = metricas.valorTotalContratos + metricas.totalAditivosGeral - metricas.totalGastoGeral;
+  alertasPrazo.sort(function(a, b) { return a.dias - b.dias; });
+  
+  return {
+    success: true,
+    data: {
+      metricas: metricas, contratos: contratos,
+      dataAtualizacao: Utilities.formatDate(hoje, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm'),
+      alertas: { prazo: alertasPrazo, saldo: alertasSaldo },
+      graficos: { saldoPorPrestador: { labels: labelsProvedores, values: dadosSaldoProvedores }, producaoMensal: {} },
+      producaoTotal: 0
+    }
+  };
+}
+
+// ======================================================================
+// getContratos
+// ======================================================================
+function getContratos() {
+  var ss = SpreadsheetApp.openById(ID_PLANILHA);
+  var aba = ss.getSheetByName('CONTRATOS');
+  if (!aba || aba.getLastRow() <= 1) return [];
+  var dados = aba.getRange(2, 1, aba.getLastRow() - 1, 2).getValues();
+  var lista = [];
+  for (var i = 0; i < dados.length; i++) {
+    var id = dados[i][0], nome = dados[i][1];
+    if (id && id.toString().trim() !== '') lista.push({ id: id, nome: nome || '' });
+  }
+  return lista;
+}
+
+// ======================================================================
+// inserirProducao
+// ======================================================================
+function inserirProducao(contratoId, competenciaStr, tipoRepasse, valor) {
+  try {
+    if (!contratoId || !contratoId.toString().trim()) throw new Error('ID do contrato é obrigatório. Recebido: "' + contratoId + '"');
+    if (!competenciaStr) throw new Error('Competência é obrigatória.');
+    if (valor === undefined || valor === null || isNaN(Number(valor))) throw new Error('Valor inválido: ' + valor);
+    
+    var ss = SpreadsheetApp.openById(ID_PLANILHA);
+    var aba = ss.getSheetByName('PRODUCAO');
+    if (!aba) throw new Error('Aba PRODUCAO não encontrada');
+    
+    var partes = competenciaStr.split('-');
+    if (partes.length !== 2) throw new Error('Formato AAAA-MM inválido: ' + competenciaStr);
+    var dataComp = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, 1);
+    
+    var ult = aba.getLastRow() + 1;
+    var nId = 'PROD-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMddHHmmss');
+    
+    aba.getRange(ult, 1).setValue(nId);
+    aba.getRange(ult, 2).setValue(contratoId.toString().trim());
+    aba.getRange(ult, 3).setValue(dataComp);
+    aba.getRange(ult, 4).setValue(tipoRepasse || 'Fixo');
+    aba.getRange(ult, 5).setValue(Number(valor));
+    
+    SpreadsheetApp.flush();
+    console.log('[inserirProducao] SUCESSO - Linha ' + ult + ' - ID: ' + nId);
+    return '✅ Produção lançada com sucesso!';
+  } catch (e) {
+    console.error('[inserirProducao] ERRO:', e.message);
+    throw new Error('Erro ao inserir produção: ' + e.message);
+  }
+}
+
+// ======================================================================
+// inserirAditivo
+// ======================================================================
+function inserirAditivo(contratoId, dataStr, tipoAditivo, valorAditivo) {
+  try {
+    if (!contratoId || !contratoId.toString().trim()) throw new Error('ID do contrato é obrigatório.');
+    if (!dataStr) throw new Error('Data do aditivo é obrigatória.');
+    if (valorAditivo === undefined || valorAditivo === null || isNaN(Number(valorAditivo))) throw new Error('Valor inválido.');
+    var ss = SpreadsheetApp.openById(ID_PLANILHA);
+    var aba = ss.getSheetByName('ADITIVOS');
+    if (!aba) throw new Error('Aba ADITIVOS não encontrada');
+    var dt = new Date(dataStr);
+    var ult = aba.getLastRow() + 1;
+    var nId = 'ADIT-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMddHHmmss');
+    aba.getRange(ult, 1).setValue(nId);
+    aba.getRange(ult, 2).setValue(contratoId.toString().trim());
+    aba.getRange(ult, 3).setValue(dt);
+    aba.getRange(ult, 4).setValue(tipoAditivo || 'Outro');
+    aba.getRange(ult, 5).setValue(Number(valorAditivo));
+    SpreadsheetApp.flush();
+    return '✅ Aditivo lançado com sucesso!';
+  } catch (e) { throw new Error('Erro ao inserir aditivo: ' + e.message); }
+}
+
+// ======================================================================
+// listarContratosDetalhados
+// ======================================================================
+function listarContratosDetalhados() {
+  var ss = SpreadsheetApp.openById(ID_PLANILHA);
+  var aba = ss.getSheetByName('CONTRATOS');
+  if (!aba || aba.getLastRow() <= 1) return [];
+  var dados = aba.getRange(2, 1, aba.getLastRow() - 1, 7).getValues();
+  var lista = [];
+  for (var i = 0; i < dados.length; i++) {
+    var id = dados[i][0];
+    if (id && id.toString().trim() !== '') {
+      lista.push({
+        id: id.toString().trim(), prestador: (dados[i][1] || '').toString().trim(),
+        tipo: (dados[i][2] || '').toString().trim(), objeto: (dados[i][3] || '').toString().trim(),
+        dataInicio: dados[i][4] ? Utilities.formatDate(new Date(dados[i][4]), Session.getScriptTimeZone(), 'dd/MM/yyyy') : '',
+        dataFim: dados[i][5] ? Utilities.formatDate(new Date(dados[i][5]), Session.getScriptTimeZone(), 'dd/MM/yyyy') : '',
+        valorInicial: Number(dados[i][6]) || 0
+      });
+    }
+  }
+  return lista;
+}
+
+// ======================================================================
+// obterTodaProducao / obterTodosAditivos
+// ======================================================================
+function obterTodaProducao() {
+  var ss = SpreadsheetApp.openById(ID_PLANILHA);
+  var aba = ss.getSheetByName('PRODUCAO');
+  if (!aba || aba.getLastRow() <= 1) return [];
+  var dados = aba.getRange(2, 1, aba.getLastRow() - 1, 5).getValues();
+  var lista = [];
+  for (var i = 0; i < dados.length; i++) {
+    var r = dados[i];
+    lista.push({ id: r[0] || '', contrato: (r[1] || '').toString().trim(), competencia: r[2] ? Utilities.formatDate(new Date(r[2]), Session.getScriptTimeZone(), 'dd/MM/yyyy') : '', tipo: (r[3] || '').toString().trim(), valor: Number(r[4]) || 0 });
+  }
+  return lista;
+}
+
+function obterTodosAditivos() {
+  var ss = SpreadsheetApp.openById(ID_PLANILHA);
+  var aba = ss.getSheetByName('ADITIVOS');
+  if (!aba || aba.getLastRow() <= 1) return [];
+  var dados = aba.getRange(2, 1, aba.getLastRow() - 1, 5).getValues();
+  var lista = [];
+  for (var i = 0; i < dados.length; i++) {
+    var r = dados[i];
+    lista.push({ id: r[0] || '', contrato: (r[1] || '').toString().trim(), data: r[2] ? Utilities.formatDate(new Date(r[2]), Session.getScriptTimeZone(), 'dd/MM/yyyy') : '', tipo: (r[3] || '').toString().trim(), valor: Number(r[4]) || 0 });
+  }
+  return lista;
+}
+
+// ======================================================================
+// inserirNovoContrato
+// ======================================================================
+function inserirNovoContrato(params) {
+  if (!params || typeof params !== 'object') params = {};
+  var idContrato = (params.id || '').toString().trim();
+  var prestador = (params.prestador || '').toString().trim();
+  var tipo = (params.tipo || '').toString().trim();
+  var objeto = (params.objeto || '').toString().trim();
+  var di = params.dataInicio || '';
+  var df = params.dataFim || '';
+  var v = parseFloat(params.valorInicial || 0) || 0;
+  if (!idContrato) throw new Error('ID do contrato é obrigatório.');
+  if (!prestador) throw new Error('Prestador é obrigatório.');
+  if (!df) throw new Error('Data fim é obrigatória.');
+  var ss = SpreadsheetApp.openById(ID_PLANILHA);
+  var aba = ss.getSheetByName('CONTRATOS');
+  if (!aba) throw new Error('Aba CONTRATOS não encontrada');
+  var ult = aba.getLastRow() + 1;
+  aba.getRange(ult, 1).setValue(idContrato);
+  aba.getRange(ult, 2).setValue(prestador);
+  aba.getRange(ult, 3).setValue(tipo);
+  aba.getRange(ult, 4).setValue(objeto);
+  aba.getRange(ult, 5).setValue(di ? new Date(di) : new Date());
+  aba.getRange(ult, 6).setValue(new Date(df));
+  aba.getRange(ult, 7).setValue(v);
+  SpreadsheetApp.flush();
+  return { success: true, message: '✅ Contrato ' + idContrato + ' cadastrado com sucesso!' };
+}
