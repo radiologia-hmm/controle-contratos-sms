@@ -3,32 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Contratos - SMS / Radiologia HMM</title>
+    <title>Controle de Contratos - SMS / DMAC</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f4f6f9; color: #333; display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 900px; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { color: #0056b3; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        body { background-color: #f0f2f5; color: #333; display: flex; justify-content: center; padding: 20px; }
         
-        /* Modal / Form de Login */
-        .login-card { max-width: 400px; margin: 50px auto; padding: 30px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .login-card { width: 100%; max-width: 400px; margin: 80px auto; padding: 30px; background: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
         input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-        button { width: 100%; padding: 11px; background: #0056b3; color: white; border: none; border-radius: 4px; font-size: 15px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button { width: 100%; padding: 11px; background: #0056b3; color: white; border: none; border-radius: 4px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         button:hover { background: #003d80; }
         
-        /* Painel principal */
-        #painel { display: none; }
-        .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #eef4fc; padding: 12px 20px; border-radius: 6px; }
+        #painel { display: none; width: 100%; max-width: 1000px; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: #eef4fc; padding: 15px 20px; border-radius: 6px; }
         .btn-logout { width: auto; padding: 6px 15px; background: #dc3545; font-size: 13px; }
         .btn-logout:hover { background: #a71d2a; }
         
-        /* Tabela */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; color: #495057; }
-        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; background: #d4edda; color: #155724; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card { background: #f8f9fa; border-left: 4px solid #0056b3; padding: 15px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card h3 { font-size: 13px; color: #6c757d; text-transform: uppercase; margin-bottom: 5px; }
+        .card .number { font-size: 24px; font-weight: bold; color: #0056b3; }
+        
+        .section-title { color: #0056b3; margin: 20px 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 18px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1.5fr auto; gap: 10px; margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e9ecef; font-size: 14px; }
+        th { background-color: #f8f9fa; color: #495057; font-weight: 600; }
+        .badge-ativo { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; background: #d4edda; color: #155724; }
         .alert-error { color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none; font-size: 14px; }
     </style>
 </head>
@@ -36,7 +38,8 @@
 
     <!-- TELA DE LOGIN -->
     <div id="tela-login" class="login-card">
-        <h2>Acesso ao Sistema</h2>
+        <h2 style="color:#0056b3; margin-bottom:5px; text-align:center;">SMS / DMAC</h2>
+        <p style="text-align:center; color:#6c757d; font-size:13px; margin-bottom:20px;">Controle de Contratos</p>
         <div id="erro-login" class="alert-error"></div>
         <form id="formLogin">
             <div class="form-group">
@@ -52,21 +55,37 @@
     </div>
 
     <!-- PAINEL DE GESTÃO -->
-    <div id="painel" class="container">
+    <div id="painel">
         <div class="user-header">
-            <div><strong>Servidor:</strong> <span id="nomeUsuario"></span> (<span id="perfilUsuario"></span>)</div>
+            <div><strong>Servidor DMAC:</strong> <span id="nomeUsuario"></span> (<span id="perfilUsuario"></span>)</div>
             <button class="btn-logout" onclick="logout()">Sair</button>
         </div>
 
-        <h2>Novo Contrato</h2>
-        <form id="formContrato" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 25px;">
+        <!-- DASHBOARD / CARDS -->
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3>Total de Contratos</h3>
+                <div class="number" id="cardTotal">0</div>
+            </div>
+            <div class="card" style="border-left-color: #28a745;">
+                <h3>Contratos Ativos</h3>
+                <div class="number" style="color: #28a745;" id="cardAtivos">0</div>
+            </div>
+            <div class="card" style="border-left-color: #ffc107;">
+                <h3>Empresas Atendidas</h3>
+                <div class="number" style="color: #ffc107;" id="cardEmpresas">0</div>
+            </div>
+        </div>
+
+        <h3 class="section-title">Novo Lançamento DMAC</h3>
+        <form id="formContrato" class="form-row">
             <input type="text" id="numContrato" placeholder="Nº Contrato" required>
             <input type="text" id="empresa" placeholder="Empresa" required>
             <input type="text" id="objeto" placeholder="Objeto do Contrato" required>
-            <button type="submit" style="width: auto; padding: 0 20px;">Salvar</button>
+            <button type="submit" style="width: auto; padding: 0 25px;">Salvar</button>
         </form>
 
-        <h2>Contratos Cadastrados</h2>
+        <h3 class="section-title">Contratos Cadastrados</h3>
         <table>
             <thead>
                 <tr>
@@ -86,7 +105,6 @@
     <script>
         const API_URL = "https://api-controle-contratos.onrender.com";
 
-        // Controle de Sessão
         document.addEventListener("DOMContentLoaded", () => {
             const usuarioSalvo = JSON.parse(localStorage.getItem("usuario_sms"));
             if (usuarioSalvo) {
@@ -94,7 +112,6 @@
             }
         });
 
-        // Evento de Login
         document.getElementById("formLogin").addEventListener("submit", async (e) => {
             e.preventDefault();
             const erroDiv = document.getElementById("erro-login");
@@ -134,15 +151,20 @@
             location.reload();
         }
 
-        // Buscar Contratos da API
         async function carregarContratos() {
             try {
                 const response = await fetch(`${API_URL}/api/contratos`);
                 const contratos = await response.json();
                 const tbody = document.getElementById("tabelaContratos");
                 
+                document.getElementById("cardTotal").innerText = contratos.length;
+                document.getElementById("cardAtivos").innerText = contratos.filter(c => c.status === 'Ativo').length;
+                
+                const empresasUnicas = new Set(contratos.map(c => c.empresa.trim().toLowerCase()));
+                document.getElementById("cardEmpresas").innerText = empresasUnicas.size;
+
                 if (contratos.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5">Nenhum contrato cadastrado ainda.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="5">Nenhum contrato cadastrado ainda. Cadastre o primeiro acima!</td></tr>`;
                     return;
                 }
 
@@ -152,7 +174,7 @@
                         <td><strong>${c.numero_contrato}</strong></td>
                         <td>${c.empresa}</td>
                         <td>${c.objeto || '-'}</td>
-                        <td><span class="status-badge">${c.status}</span></td>
+                        <td><span class="badge-ativo">${c.status}</span></td>
                     </tr>
                 `).join('');
             } catch (err) {
@@ -160,7 +182,6 @@
             }
         }
 
-        // Cadastrar Novo Contrato
         document.getElementById("formContrato").addEventListener("submit", async (e) => {
             e.preventDefault();
             const novoContrato = {
