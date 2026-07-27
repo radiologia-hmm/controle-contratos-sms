@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import List, Optional
 import sqlite3
-import hashlib
+from datetime import datetime
 
-app = FastAPI(title="API Controle de Contratos SMS")
+app = FastAPI(title="API Controle de Contratos - SMS DMAC")
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,115 +15,194 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_NAME = "contratos.db"
+DATABASE = "contratos_dmac.db"
 
-# Função auxiliar para criptografar senhas (SHA-256)
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    
-    # Tabela de Contratos
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS contratos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            numero_contrato TEXT NOT NULL,
-            empresa TEXT NOT NULL,
-            objeto TEXT,
-            status TEXT DEFAULT 'Ativo',
-            data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Tabela de Usuários para acesso dos servidores
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            usuario TEXT UNIQUE NOT NULL,
-            senha TEXT NOT NULL,
-            perfil TEXT DEFAULT 'operador'
-        )
-    ''')
-    
-    # Cria um usuário administrador padrão se não existir nenhum
-    cursor.execute("SELECT count(*) FROM usuarios")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute(
-            "INSERT INTO usuarios (nome, usuario, senha, perfil) VALUES (?, ?, ?, ?)",
-            ("Administrador HMM", "admin", hash_password("admin123"), "admin")
-        )
-    
-    conn.commit()
-    conn.close()
+    with get_db() as conn:
+        cursor = conn.cursor()
+        
+        # Tabela de Usuários com vinculação de Pasta/Categoria
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario TEXT UNIQUE NOT NULL,
+                senha TEXT NOT NULL,
+                nome TEXT NOT NULL,
+                perfil TEXT NOT NULL,
+                categoria_vinculada TEXT -- Ex: 'Diagnóstico por Imagem' ou 'TODAS'
+            )
+        """)
+        
+        # Usuários Iniciais
+        cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (1, 'denisval', '123456', 'Denisval Rodrigues', 'Coordenador de Diagnóstico por Imagem', 'Diagnóstico por Imagem')")
+        cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (2, 'luana', '123456', 'Luana', 'Diretora DMAC', 'TODAS')")
+        cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (3, 'admin', '123456', 'Administrador do Sistema', 'Administrador Geral', 'TODAS')")
+
+        # Tabela de Contratos incluindo 'categoria'
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS contratos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                numero_contrato TEXT UNIQUE NOT NULL,
+                empresa TEXT NOT NULL,
+                objeto TEXT NOT NULL,
+                categoria TEXT NOT NULL, -- Ex: Diagnóstico por Imagem, Laboratório, etc.
+                valor_total REAL NOT NULL,
+                data_inicio DATE NOT NULL,
+                data_fim DATE NOT NULL,
+                status TEXT DEFAULT 'Ativo'
+            )
+        """)
+
+        # Tabela de Aditivos
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS aditivos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contrato_id INTEGER NOT NULL,
+                valor_aditivo REAL NOT NULL,
+                data_aditivo DATE NOT NULL,
+                observacao TEXT,
+                FOREIGN KEY (contrato_id) REFERENCES contratos (id)
+            )
+        """)
+
+        # Tabela de Despesas / Produção Mensal
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS despesas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contrato_id INTEGER NOT NULL,
+                mes_referencia TEXT NOT NULL,
+                tipo_lancamento TEXT NOT NULL,
+                qtd_exames INTEGER DEFAULT 0,
+                valor_unitario REAL DEFAULT 0,
+                valor_total_mes REAL NOT NULL,
+                data_lancamento DATE NOT NULL,
+                FOREIGN KEY (contrato_id) REFERENCES contratos (id)
+            )
+        """)
+        conn.commit()
 
 init_db()
 
-# Modelos
-class ContratoSchema(BaseModel):
-    numero_contrato: str
-    empresa: str
-    objeto: str
-    status: str = "Ativo"
-
+# Schemas Pydantic
 class LoginSchema(BaseModel):
     usuario: str
     senha: str
 
-@app.get("/")
-def home():
-    return {"status": "API de Contratos Operacional", "versao": "2.0"}
+class ContratoSchema(BaseModel):
+    numero_contrato: str
+    empresa: str
+    objeto: str
+    categoria: str
+    valor_total: float
+    data_inicio: str
+    data_fim: str
 
-# ROTA DE LOGIN
+class AditivoSchema(BaseModel):
+    contrato_id: int
+    valor_aditivo: float
+    observacao: str
+
+class DespesaSchema(BaseModel):
+    contrato_id: int
+    mes_referencia: str
+    tipo_lancamento: str
+    qtd_exames: Optional[int] = 0
+    valor_unitario: Optional[float] = 0
+    valor_total_mes: float
+
 @app.post("/api/login")
 def login(dados: LoginSchema):
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_db()
     cursor = conn.cursor()
-    senha_hash = hash_password(dados.senha)
-    
-    cursor.execute("SELECT id, nome, usuario, perfil FROM usuarios WHERE usuario = ? AND senha = ?", (dados.usuario, senha_hash))
+    cursor.execute("SELECT * FROM usuarios WHERE usuario = ? AND senha = ?", (dados.usuario, dados.senha))
     user = cursor.fetchone()
-    conn.close()
-    
     if not user:
-        raise HTTPException(status_code=401, detail="Usuário ou senha incorretos")
-    
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
     return {
-        "mensagem": "Sucesso",
+        "status": "sucesso", 
         "usuario": {
-            "id": user[0],
-            "nome": user[1],
-            "usuario": user[2],
-            "perfil": user[3]
+            "id": user["id"],
+            "nome": user["nome"], 
+            "perfil": user["perfil"],
+            "categoria_vinculada": user["categoria_vinculada"]
         }
     }
 
-# ROTA DE LISTAR CONTRATOS
 @app.get("/api/contratos")
-def listar_contratos():
-    conn = sqlite3.connect(DB_NAME)
+def listar_contratos(categoria: Optional[str] = None):
+    conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, numero_contrato, empresa, objeto, status FROM contratos ORDER BY id DESC")
-    rows = cursor.fetchall()
-    conn.close()
     
-    return [
-        {"id": r[0], "numero_contrato": r[1], "empresa": r[2], "objeto": r[3], "status": r[4]}
-        for r in rows
-    ]
+    if categoria and categoria != 'TODAS':
+        cursor.execute("SELECT * FROM contratos WHERE categoria = ?", (categoria,))
+    else:
+        cursor.execute("SELECT * FROM contratos")
+        
+    contratos = [dict(row) for row in cursor.fetchall()]
+    hoje = datetime.now()
 
-# ROTA DE CADASTRAR CONTRATO
+    for c in contratos:
+        cursor.execute("SELECT SUM(valor_total_mes) as total_exec FROM despesas WHERE contrato_id = ?", (c["id"],))
+        res_desp = cursor.fetchone()
+        c["total_executado"] = res_desp["total_exec"] if res_desp["total_exec"] else 0.0
+        
+        c["pct_financeiro"] = round((c["total_executado"] / c["valor_total"]) * 100, 2) if c["valor_total"] > 0 else 0
+        c["alerta_financeiro"] = c["pct_financeiro"] >= 70.0
+
+        d_inicio = datetime.strptime(c["data_inicio"], "%Y-%m-%d")
+        d_fim = datetime.strptime(c["data_fim"], "%Y-%m-%d")
+        dias_totais = (d_fim - d_inicio).days
+        dias_decorridos = (hoje - d_inicio).days
+        
+        if dias_totais > 0:
+            pct_tempo = round((dias_decorridos / dias_totais) * 100, 2)
+            c["pct_tempo"] = min(max(pct_tempo, 0), 100)
+        else:
+            c["pct_tempo"] = 0
+            
+        c["alerta_tempo"] = c["pct_tempo"] >= 70.0
+
+    return contratos
+
 @app.post("/api/contratos")
-def criar_contrato(contrato: ContratoSchema):
-    conn = sqlite3.connect(DB_NAME)
+def criar_contrato(c: ContratoSchema):
+    conn = get_db()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO contratos (numero_contrato, empresa, objeto, status) VALUES (?, ?, ?, ?)",
-        (contrato.numero_contrato, contrato.empresa, contrato.objeto, contrato.status)
-    )
+    cursor.execute("""
+        INSERT INTO contratos (numero_contrato, empresa, objeto, categoria, valor_total, data_inicio, data_fim)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (c.numero_contrato, c.empresa, c.objeto, c.categoria, c.valor_total, c.data_inicio, c.data_fim))
     conn.commit()
-    novo_id = cursor.lastrowid
-    conn.close()
-    return {"mensagem": "Contrato salvo com sucesso!", "id": novo_id}
+    return {"status": "sucesso"}
+
+@app.post("/api/aditivos")
+def adicionar_aditivo(a: AditivoSchema):
+    conn = get_db()
+    cursor = conn.cursor()
+    hoje = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute("""
+        INSERT INTO aditivos (contrato_id, valor_aditivo, data_aditivo, observacao)
+        VALUES (?, ?, ?, ?)
+    """, (a.contrato_id, a.valor_aditivo, hoje, a.observacao))
+    cursor.execute("""
+        UPDATE contratos SET valor_total = valor_total + ? WHERE id = ?
+    """, (a.valor_aditivo, a.contrato_id))
+    conn.commit()
+    return {"status": "sucesso"}
+
+@app.post("/api/despesas")
+def lancar_despesa(d: DespesaSchema):
+    conn = get_db()
+    cursor = conn.cursor()
+    hoje = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute("""
+        INSERT INTO despesas (contrato_id, mes_referencia, tipo_lancamento, qtd_exames, valor_unitario, valor_total_mes, data_lancamento)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (d.contrato_id, d.mes_referencia, d.tipo_lancamento, d.qtd_exames, d.valor_unitario, d.valor_total_mes, hoje))
+    conn.commit()
+    return {"status": "sucesso"}
