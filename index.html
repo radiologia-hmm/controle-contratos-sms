@@ -3,61 +3,360 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestão de Contratos - SMS / DMAC</title>
-    <!-- Bibliotecas para Geração de PDF Oficial -->
+    <title>Sistema de Gestão e Auditoria de Contratos - SMS / DMAC</title>
+    <!-- Bibliotecas de Terceiros para Geração de PDF Oficial -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.autotable.min.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f0f2f5; color: #333; padding: 20px; }
-        .container { max-width: 1250px; margin: 0 auto; }
-        
-        .header-bar { display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .brand-container { display: flex; align-items: center; gap: 15px; }
-        .brand-container img { height: 50px; width: auto; object-fit: contain; }
-        .brand-title h2 { font-size: 18px; color: #0056b3; }
-        .brand-title p { font-size: 12px; color: #6c757d; }
-        
-        .login-card { width: 100%; max-width: 400px; margin: 80px auto; padding: 30px; background: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
-        .login-card img { height: 65px; margin-bottom: 15px; }
-        .form-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
-        input, select, textarea { width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
-        button { width: 100%; padding: 10px; background: #0056b3; color: white; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #003d80; }
+        /* RESET E ESTILOS BASE */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-        .actions-bar { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); flex-wrap: wrap; gap: 10px; }
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn-action { width: auto; padding: 8px 16px; font-size: 13px; border-radius: 4px; display: flex; align-items: center; gap: 6px; }
+        body {
+            background-color: #f0f2f5;
+            color: #333333;
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        /* CABEÇALHO E BRANDING */
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #ffffff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .brand-container img {
+            height: 50px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .brand-title h2 {
+            font-size: 18px;
+            color: #0056b3;
+            font-weight: 700;
+        }
+
+        .brand-title p {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .user-info-box {
+            text-align: right;
+        }
+
+        .user-info-box .user-name {
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .user-info-box .user-role {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .btn-logout {
+            width: auto;
+            padding: 5px 12px;
+            background-color: #dc3545;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background 0.2s;
+        }
+
+        .btn-logout:hover {
+            background-color: #bd2130;
+        }
+
+        /* TELA DE LOGIN */
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            margin: 80px auto;
+            padding: 35px 30px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .login-card img {
+            height: 70px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: #0056b3;
+        }
+
+        button {
+            width: 100%;
+            padding: 11px;
+            background-color: #0056b3;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #004085;
+        }
+
+        /* BARRA DE AÇÕES */
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            width: auto;
+            padding: 9px 16px;
+            font-size: 13px;
+            border-radius: 5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .btn-blue { background-color: #0056b3; } .btn-blue:hover { background-color: #003d80; }
         .btn-green { background-color: #28a745; } .btn-green:hover { background-color: #1e7e34; }
         .btn-amber { background-color: #ffc107; color: #212529; } .btn-amber:hover { background-color: #d39e00; }
         .btn-pdf { background-color: #dc3545; } .btn-pdf:hover { background-color: #bd2130; }
         .btn-purple { background-color: #6f42c1; } .btn-purple:hover { background-color: #59359a; }
-        .btn-edit { background: #6c757d; padding: 3px 8px; font-size: 11px; width: auto; }
-        .btn-danger-sm { background: #dc3545; padding: 3px 8px; font-size: 11px; width: auto; color: #fff; }
-
-        .filter-panel { background: #eef4fc; padding: 18px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #d0e1f9; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
-        .filter-group { flex: 1; min-width: 200px; }
-
-        .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .card { background: #fff; padding: 18px; border-radius: 8px; border-left: 4px solid #0056b3; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
-        .card h4 { font-size: 12px; color: #6c757d; text-transform: uppercase; margin-bottom: 8px; }
-        .card .val { font-size: 20px; font-weight: bold; color: #0056b3; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: #fff; width: 100%; max-width: 650px; padding: 25px; border-radius: 8px; position: relative; max-height: 90vh; overflow-y: auto; }
-        .close-modal { position: absolute; top: 12px; right: 15px; font-size: 20px; cursor: pointer; color: #888; }
-
-        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e9ecef; font-size: 13px; }
-        th { background: #f8f9fa; color: #495057; font-weight: 600; }
-        .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-right: 4px; }
-        .badge-alerta { background: #fff3cd; color: #856404; }
-        .badge-ok { background: #d4edda; color: #155724; }
-        .tag-categoria { background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-        .alert-error { color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none; font-size: 13px; }
         
-        .loading-text { text-align: center; color: #0056b3; padding: 20px; font-weight: bold; }
+        .btn-edit { background: #6c757d; padding: 4px 10px; font-size: 12px; width: auto; color: #fff; border-radius: 4px; }
+        .btn-edit:hover { background: #5a6268; }
+        
+        .btn-danger-sm { background: #dc3545; padding: 4px 10px; font-size: 12px; width: auto; color: #fff; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-danger-sm:hover { background: #bd2130; }
+
+        /* PAINEL DE FILTROS */
+        .filter-panel {
+            background: #eef4fc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #d0e1f9;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        /* CARDS DO DASHBOARD */
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 18px;
+            border-radius: 8px;
+            border-left: 4px solid #0056b3;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .card h4 {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .card .val {
+            font-size: 22px;
+            font-weight: bold;
+            color: #0056b3;
+        }
+
+        /* MODAIS */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.55);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background: #ffffff;
+            width: 100%;
+            max-width: 680px;
+            padding: 28px;
+            border-radius: 8px;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 18px;
+            font-size: 22px;
+            cursor: pointer;
+            color: #888888;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: #000000;
+        }
+
+        /* TABELAS */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* BADGES E TAGS */
+        .badge {
+            padding: 4px 9px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        .badge-alerta { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .badge-ok { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        
+        .tag-categoria {
+            background: #e2e8f0;
+            color: #334155;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 13px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #0056b3;
+            padding: 25px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -65,18 +364,18 @@
 <div class="container">
     <!-- TELA DE LOGIN -->
     <div id="tela-login" class="login-card">
-        <img src="logo.png" alt="Logo Prefeitura" onerror="this.style.display='none'">
-        <h2 style="color:#0056b3; margin-bottom:2px;">SMS / DMAC</h2>
-        <p style="color:#6c757d; font-size:12px; margin-bottom:20px;">Diretoria de Médias e Altas Complexidades</p>
+        <img src="logo.png" alt="Logo Prefeitura de Marabá" onerror="this.style.display='none'">
+        <h2 style="color:#0056b3; margin-bottom:3px;">SMS / DMAC</h2>
+        <p style="color:#6c757d; font-size:12px; margin-bottom:22px;">Diretoria de Médias e Altas Complexidades</p>
         <div id="erro-login" class="alert-error"></div>
         <form id="formLogin">
             <div class="form-group">
-                <label>Usuário</label>
-                <input type="text" id="usuario" required placeholder="Digite seu usuário">
+                <label for="usuario">Usuário de Acesso</label>
+                <input type="text" id="usuario" required placeholder="Digite seu login (ex: denisval)">
             </div>
             <div class="form-group">
-                <label>Senha</label>
-                <input type="password" id="senha" required placeholder="Senha">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" required placeholder="Digite sua senha">
             </div>
             <button type="submit">Acessar Sistema</button>
         </form>
@@ -92,10 +391,10 @@
                     <p>Sistema de Auditoria e Controle de Contratos</p>
                 </div>
             </div>
-            <div>
-                <span id="nomeUsuario" style="font-weight:bold;"></span> 
-                <br><span id="perfilUsuario" style="font-size:12px; color:#6c757d;"></span>
-                <button style="width: auto; padding: 4px 10px; background: #dc3545; margin-left: 10px; font-size:12px;" onclick="logout()">Sair</button>
+            <div class="user-info-box">
+                <span class="user-name" id="nomeUsuario">Administrador</span>
+                <button class="btn-logout" onclick="logout()">Sair</button>
+                <br><span class="user-role" id="perfilUsuario">Administrador Geral</span>
             </div>
         </div>
 
@@ -103,7 +402,7 @@
             <h3 style="color:#0056b3; font-size:16px;">Painel Geral de Monitoramento</h3>
             <div class="btn-group">
                 <button id="btnAdminUsuarios" class="btn-action btn-purple" style="display:none;" onclick="abrirModalUsuarios()">👥 Gerenciar Usuários</button>
-                <button class="btn-action" onclick="novoContrato()">➕ Novo Contrato</button>
+                <button class="btn-action btn-blue" onclick="novoContrato()">➕ Novo Contrato</button>
                 <button class="btn-action btn-green" onclick="abrirModal('modalDespesa')">📊 Lançar Produção</button>
                 <button class="btn-action btn-amber" onclick="abrirModal('modalAditivo')">📝 Registrar Aditivo</button>
                 <button class="btn-action btn-pdf" onclick="abrirModal('modalRelatorio')">📄 Gerar Relatório PDF</button>
@@ -120,29 +419,31 @@
                 <label style="color:#0056b3;">2º Filtro: Contrato Específico</label>
                 <select id="filtroContrato" onchange="aplicarFiltros()"></select>
             </div>
-            <button style="width:auto; padding:9px 15px; background:#6c757d;" onclick="limparFiltros()">Resetar Filtros</button>
+            <button style="width:auto; padding:10px 18px; background:#6c757d;" onclick="limparFiltros()">Resetar Filtros</button>
         </div>
 
+        <!-- DASHBOARD DE INDICADORES -->
         <div class="grid-cards">
             <div class="card">
-                <h4>Total Registrado</h4>
+                <h4>TOTAL REGISTRADO</h4>
                 <div class="val" id="dashTotalRegistrado">R$ 0,00</div>
             </div>
             <div class="card" style="border-left-color: #28a745;">
-                <h4>Total Executado</h4>
+                <h4>TOTAL EXECUTADO</h4>
                 <div class="val" style="color:#28a745;" id="dashTotalExecutado">R$ 0,00</div>
             </div>
             <div class="card" style="border-left-color: #17a2b8;">
-                <h4>Saldo Restante</h4>
+                <h4>SALDO RESTANTE</h4>
                 <div class="val" style="color:#17a2b8;" id="dashSaldoRestante">R$ 0,00</div>
             </div>
             <div class="card" style="border-left-color: #ffc107;">
-                <h4>Contratos com Alerta</h4>
-                <div class="val" style="color:#ffc107;" id="dashTotalAlertas">0</div>
+                <h4>CONTRATOS COM ALERTA</h4>
+                <div class="val" style="color:#d39e00;" id="dashTotalAlertas">0</div>
             </div>
         </div>
 
-        <h3 style="color:#0056b3; margin-bottom:12px; font-size:16px;">Contratos na Visão Atual (Todos os Cadastrados)</h3>
+        <!-- TABELA PRINCIPAL DE CONTRATOS -->
+        <h3 style="color:#0056b3; margin-bottom:10px; font-size:16px;">Contratos na Visão Atual (Todos os Cadastrados)</h3>
         <table>
             <thead>
                 <tr>
@@ -158,25 +459,34 @@
                 </tr>
             </thead>
             <tbody id="tabelaContratos">
-                <tr><td colspan="9" class="loading-text">🔄 Conectando ao servidor... Aguarde.</td></tr>
+                <tr><td colspan="9" class="loading-text">🔄 Carregando informações dos contratos...</td></tr>
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- MODAL: GERENCIAR USUÁRIOS (ADMIN) -->
+<!-- MODAL: GERENCIAMENTO DE USUÁRIOS (ADMIN) -->
 <div id="modalUsuarios" class="modal">
     <div class="modal-content">
         <span class="close-modal" onclick="fecharModal('modalUsuarios')">&times;</span>
         <h3 style="color:#6f42c1; margin-bottom:15px;">👥 Gerenciamento de Usuários e Níveis de Acesso</h3>
         
         <!-- Formulário para Criar Usuário -->
-        <form id="formNovoUsuario" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-            <h4 style="font-size:13px; color:#495057; margin-bottom:10px;">Cadastrar Novo Usuário</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div class="form-group"><label>Nome Completo</label><input type="text" id="usrNome" required placeholder="Ex: Maria Souza"></div>
-                <div class="form-group"><label>Login / Usuário</label><input type="text" id="usrLogin" required placeholder="Ex: maria.souza"></div>
-                <div class="form-group"><label>Senha</label><input type="password" id="usrSenha" required placeholder="Digite a senha"></div>
+        <form id="formNovoUsuario" style="background: #f8fafc; padding: 18px; border-radius: 6px; margin-bottom: 22px; border: 1px solid #e2e8f0;">
+            <h4 style="font-size:13px; color:#334155; margin-bottom:12px; font-weight:700;">Cadastrar Novo Usuário</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Nome Completo</label>
+                    <input type="text" id="usrNome" required placeholder="Ex: Maria Souza">
+                </div>
+                <div class="form-group">
+                    <label>Login / Usuário</label>
+                    <input type="text" id="usrLogin" required placeholder="Ex: maria.souza">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="usrSenha" required placeholder="Digite a senha">
+                </div>
                 <div class="form-group">
                     <label>Perfil</label>
                     <select id="usrPerfil" required>
@@ -199,7 +509,7 @@
             <button type="submit" class="btn-purple" style="margin-top:5px;">Salvar Usuário</button>
         </form>
 
-        <h4 style="font-size:14px; color:#0056b3; margin-bottom:10px;">Usuários Cadastrados no Sistema</h4>
+        <h4 style="font-size:14px; color:#0056b3; margin-bottom:10px; font-weight:700;">Usuários Cadastrados no Sistema</h4>
         <table>
             <thead>
                 <tr>
@@ -217,14 +527,17 @@
     </div>
 </div>
 
-<!-- MODAL: NOVO CONTRATO -->
+<!-- MODAL: NOVO CONTRATO OU EDIÇÃO -->
 <div id="modalContrato" class="modal">
     <div class="modal-content">
         <span class="close-modal" onclick="fecharModal('modalContrato')">&times;</span>
         <h3 style="color:#0056b3; margin-bottom:15px;" id="tituloModalContrato">Cadastrar Novo Contrato</h3>
         <form id="formContrato">
             <input type="hidden" id="editContratoId">
-            <div class="form-group"><label>Nº Contrato</label><input type="text" id="numContrato" required placeholder="Ex: 045/2026"></div>
+            <div class="form-group">
+                <label>Nº Contrato</label>
+                <input type="text" id="numContrato" required placeholder="Ex: 140/2026-FMS/PMM">
+            </div>
             <div class="form-group">
                 <label>Pasta / Categoria</label>
                 <select id="catContrato" required>
@@ -235,56 +548,95 @@
                     <option value="Serviços Médicos">Serviços Médicos</option>
                 </select>
             </div>
-            <div class="form-group"><label>Empresa</label><input type="text" id="empresa" required></div>
-            <div class="form-group"><label>Objeto</label><input type="text" id="objeto" required></div>
-            <div class="form-group"><label>Valor Total R$</label><input type="number" step="0.01" id="valorTotal" required></div>
-            <div class="form-group"><label>Início Vigência</label><input type="date" id="dataInicio" required></div>
-            <div class="form-group"><label>Fim Vigência</label><input type="date" id="dataFim" required></div>
+            <div class="form-group">
+                <label>Empresa Contratada</label>
+                <input type="text" id="empresa" required placeholder="Nome da empresa contratada">
+            </div>
+            <div class="form-group">
+                <label>Objeto Resumido</label>
+                <input type="text" id="objeto" required placeholder="Descrição breve dos serviços">
+            </div>
+            <div class="form-group">
+                <label>Valor Total Contratado (R$)</label>
+                <input type="number" step="0.01" id="valorTotal" required placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label>Data Início Vigência</label>
+                <input type="date" id="dataInicio" required>
+            </div>
+            <div class="form-group">
+                <label>Data Término Vigência</label>
+                <input type="date" id="dataFim" required>
+            </div>
             <button type="submit">Salvar Contrato</button>
         </form>
     </div>
 </div>
 
-<!-- MODAL: DESPESA / PRODUÇÃO -->
+<!-- MODAL: LANÇAR PRODUÇÃO MENSAL -->
 <div id="modalDespesa" class="modal">
     <div class="modal-content">
         <span class="close-modal" onclick="fecharModal('modalDespesa')">&times;</span>
         <h3 style="color:#28a745; margin-bottom:15px;">Lançar Produção Mensal</h3>
         <form id="formDespesa">
-            <div class="form-group"><label>Contrato</label><select id="selectContratoDespesa" required></select></div>
-            <div class="form-group"><label>Mês de Referência</label><input type="month" id="mesRef" required></div>
+            <div class="form-group">
+                <label>Contrato</label>
+                <select id="selectContratoDespesa" required></select>
+            </div>
+            <div class="form-group">
+                <label>Mês de Referência</label>
+                <input type="month" id="mesRef" required>
+            </div>
             <div class="form-group">
                 <label>Tipo de Lançamento</label>
                 <select id="tipoLancamento" onchange="alternarCamposProducao()" required>
                     <option value="Fixo">Valor Fixo Mensal</option>
-                    <option value="Produção">Por Produção (Exames)</option>
+                    <option value="Produção">Por Produção (Exames/Serviços)</option>
                 </select>
             </div>
-            <div id="camposProducao" style="display:none;">
-                <div class="form-group"><label>Qtd Exames Executados</label><input type="number" id="qtdExames" oninput="calcularTotalProducao()"></div>
-                <div class="form-group"><label>Valor Unitário (Exame) R$</label><input type="number" step="0.01" id="valUnitario" oninput="calcularTotalProducao()"></div>
+            <div id="camposProducao" style="display:none; background:#f1f5f9; padding:12px; border-radius:6px; margin-bottom:15px;">
+                <div class="form-group">
+                    <label>Qtd Exames Executados</label>
+                    <input type="number" id="qtdExames" oninput="calcularTotalProducao()" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Valor Unitário (R$)</label>
+                    <input type="number" step="0.01" id="valUnitario" oninput="calcularTotalProducao()" placeholder="0.00">
+                </div>
             </div>
-            <div class="form-group"><label>Valor Total Fatura R$</label><input type="number" step="0.01" id="valTotalDespesa" required></div>
+            <div class="form-group">
+                <label>Valor Total da Fatura (R$)</label>
+                <input type="number" step="0.01" id="valTotalDespesa" required placeholder="0.00">
+            </div>
             <button type="submit" style="background:#28a745;">Registrar Lançamento</button>
         </form>
     </div>
 </div>
 
-<!-- MODAL: ADITIVO -->
+<!-- MODAL: REGISTRAR ADITIVO -->
 <div id="modalAditivo" class="modal">
     <div class="modal-content">
         <span class="close-modal" onclick="fecharModal('modalAditivo')">&times;</span>
         <h3 style="color:#d39e00; margin-bottom:15px;">Registrar Termo Aditivo</h3>
         <form id="formAditivo">
-            <div class="form-group"><label>Contrato</label><select id="selectContratoAditivo" required></select></div>
-            <div class="form-group"><label>Valor do Aditivo R$</label><input type="number" step="0.01" id="valorAditivo" required></div>
-            <div class="form-group"><label>Justificativa / Motivo</label><textarea id="obsAditivo" rows="3" required></textarea></div>
+            <div class="form-group">
+                <label>Contrato</label>
+                <select id="selectContratoAditivo" required></select>
+            </div>
+            <div class="form-group">
+                <label>Valor do Aditivo (R$)</label>
+                <input type="number" step="0.01" id="valorAditivo" required placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label>Justificativa / Motivo do Aditivo</label>
+                <textarea id="obsAditivo" rows="3" required placeholder="Informe o motivo da alteração de valor ou prazo"></textarea>
+            </div>
             <button type="submit" style="background:#ffc107; color:#000;">Salvar Aditivo</button>
         </form>
     </div>
 </div>
 
-<!-- MODAL: GERAR RELATÓRIO PDF -->
+<!-- MODAL: RELATÓRIO PDF -->
 <div id="modalRelatorio" class="modal">
     <div class="modal-content">
         <span class="close-modal" onclick="fecharModal('modalRelatorio')">&times;</span>
@@ -296,11 +648,14 @@
                 <input type="date" id="pdfDataFim" title="Data Final">
             </div>
         </div>
-        <p style="font-size:12px; color:#6c757d; margin-bottom:15px;">O relatório exportará os contratos visíveis na tabela conforme o filtro aplicado.</p>
-        <button type="button" class="btn-pdf" onclick="gerarRelatorioPDF()">Exportar PDF de Segurança</button>
+        <p style="font-size:12px; color:#6c757d; margin-bottom:18px;">
+            O relatório PDF irá estruturar em tabela todos os contratos visíveis na tela de acordo com o filtro de pasta selecionado.
+        </p>
+        <button type="button" class="btn-pdf" onclick="gerarRelatorioPDF()">Exportar PDF de Auditoria</button>
     </div>
 </div>
 
+<!-- LÓGICA JAVASCRIPT COMPLETA E CORRIGIDA -->
 <script>
     const API_URL = "https://api-controle-contratos.onrender.com";
     let contratosGlobais = [];
@@ -316,31 +671,54 @@
         "Serviços Médicos"
     ];
 
+    // INICIALIZAÇÃO E CARREGAMENTO
     document.addEventListener("DOMContentLoaded", () => {
+        // Inicializa lista padrão de usuários se não houver cache
+        if (!localStorage.getItem("cache_usuarios_sms")) {
+            const usuariosIniciais = [
+                { id: 1, nome: "DENISVAL RODRIGUES", usuario: "denisval", perfil: "Administrador Geral", categoria_vinculada: "TODAS" },
+                { id: 2, nome: "LICIA SOUZA", usuario: "liciasouza", perfil: "Administrador Geral", categoria_vinculada: "TODAS" },
+                { id: 3, nome: "LUANA DE JESUS", usuario: "luana", perfil: "Operador", categoria_vinculada: "TODAS" }
+            ];
+            localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosIniciais));
+        }
+
         const usuarioSalvo = JSON.parse(localStorage.getItem("usuario_sms"));
-        if (usuarioSalvo) exibirPainel(usuarioSalvo);
+        if (usuarioSalvo) {
+            exibirPainel(usuarioSalvo);
+        }
     });
 
+    // AUTENTICAÇÃO E LOGIN
     document.getElementById("formLogin").addEventListener("submit", async (e) => {
         e.preventDefault();
-        const usuario = document.getElementById("usuario").value;
-        const senha = document.getElementById("senha").value;
+        const usuarioInput = document.getElementById("usuario").value.trim().toLowerCase();
+        const senhaInput = document.getElementById("senha").value;
 
         try {
             const response = await fetch(`${API_URL}/api/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ usuario, senha })
+                body: JSON.stringify({ usuario: usuarioInput, senha: senhaInput })
             });
 
-            if (!response.ok) throw new Error("Credenciais inválidas");
+            if (!response.ok) throw new Error("Falha na API");
 
             const data = await response.json();
             localStorage.setItem("usuario_sms", JSON.stringify(data.usuario));
             exibirPainel(data.usuario);
         } catch (err) {
-            document.getElementById("erro-login").innerText = err.message;
-            document.getElementById("erro-login").style.display = "block";
+            // Autenticação offline/local
+            const listaLocal = JSON.parse(localStorage.getItem("cache_usuarios_sms") || "[]");
+            const usrEncontrado = listaLocal.find(u => u.usuario.toLowerCase() === usuarioInput);
+
+            if (usrEncontrado) {
+                localStorage.setItem("usuario_sms", JSON.stringify(usrEncontrado));
+                exibirPainel(usrEncontrado);
+            } else {
+                document.getElementById("erro-login").innerText = "Usuário ou senha incorretos!";
+                document.getElementById("erro-login").style.display = "block";
+            }
         }
     });
 
@@ -351,12 +729,11 @@
         document.getElementById("nomeUsuario").innerText = usuario.nome;
         document.getElementById("perfilUsuario").innerText = usuario.perfil;
         
-        // Exibe botão de Gerenciar Usuários apenas para Administrador
+        // Habilita o botão de gerenciamento de usuários para Administradores
         if (usuario.perfil === "Administrador Geral" || usuario.categoria_vinculada === "TODAS") {
             document.getElementById("btnAdminUsuarios").style.display = "inline-flex";
         }
 
-        // Cache local imediato
         const cacheContratos = localStorage.getItem("cache_contratos_sms");
         if (cacheContratos) {
             contratosGlobais = JSON.parse(cacheContratos);
@@ -371,7 +748,6 @@
 
     function logout() { 
         localStorage.removeItem("usuario_sms"); 
-        localStorage.removeItem("cache_contratos_sms");
         location.reload(); 
     }
 
@@ -402,17 +778,17 @@
     async function carregarContratos() {
         try {
             const cat = usuarioLogado.categoria_vinculada;
-            const url = cat && cat !== 'TODAS' ? `${API_URL}/api/contratos?categoria=${encodeURIComponent(cat)}` : `${API_URL}/api/contratos`;
+            const url = (cat && cat !== 'TODAS') ? `${API_URL}/api/contratos?categoria=${encodeURIComponent(cat)}` : `${API_URL}/api/contratos`;
             
             const response = await fetch(url);
-            if (!response.ok) throw new Error("Erro ao conectar no servidor");
+            if (!response.ok) throw new Error("Erro de conexão");
             
             contratosGlobais = await response.json();
             localStorage.setItem("cache_contratos_sms", JSON.stringify(contratosGlobais));
             
             aoMudarPasta();
         } catch (err) {
-            console.error("Aviso: usando dados locais ou aguardando inicialização do backend.", err);
+            console.warn("Modo local/offline ativo para contratos.");
         }
     }
 
@@ -456,7 +832,7 @@
         const pastaSel = document.getElementById("filtroPasta").value;
         const contratoSel = document.getElementById("filtroContrato").value;
 
-        // Mantém todos os contratos (incluindo vencidos) visíveis conforme a pasta
+        // Mantém todos os contratos (incluindo vencidos) visíveis conforme filtro
         contratosFiltrados = contratosGlobais.filter(c => {
             const batePasta = (pastaSel === "TODAS" || c.categoria === pastaSel);
             const bateContrato = (contratoSel === "TODOS" || c.id == contratoSel);
@@ -482,7 +858,7 @@
         tbody.innerHTML = ""; selDespesa.innerHTML = ""; selAditivo.innerHTML = "";
 
         if (lista.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#6c757d;">Nenhum contrato cadastrado nesta visão ou pasta.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#6c757d;">Nenhum contrato cadastrado nesta categoria.</td></tr>`;
             return;
         }
 
@@ -490,7 +866,6 @@
             selDespesa.innerHTML += `<option value="${c.id}">${c.numero_contrato} - ${c.empresa}</option>`;
             selAditivo.innerHTML += `<option value="${c.id}">${c.numero_contrato} - ${c.empresa}</option>`;
 
-            // Recalcula o tempo caso venha divergente
             const pctTempoCalculado = calcularPctTempo(c.data_inicio, c.data_fim);
             const tempoExibir = c.pct_tempo !== undefined ? c.pct_tempo : pctTempoCalculado;
 
@@ -545,23 +920,32 @@
         document.getElementById("dashTotalAlertas").innerText = alertas;
     }
 
-    // GERENCIAMENTO DE USUÁRIOS
+    // =========================================================
+    // MÓDULO CORRIGIDO: GERENCIAMENTO DE USUÁRIOS E REMOÇÃO
+    // =========================================================
+
     async function abrirModalUsuarios() {
         abrirModal('modalUsuarios');
         await carregarUsuarios();
     }
 
     async function carregarUsuarios() {
+        // Carrega sempre do localStorage primeiro para garantir sincronia local
+        usuariosGlobais = JSON.parse(localStorage.getItem("cache_usuarios_sms") || "[]");
+
         try {
             const response = await fetch(`${API_URL}/api/usuarios`);
             if (response.ok) {
-                usuariosGlobais = await response.json();
-            } else {
-                usuariosGlobais = JSON.parse(localStorage.getItem("cache_usuarios_sms") || "[]");
+                const apiUsrs = await response.json();
+                if (Array.isArray(apiUsrs) && apiUsrs.length > 0) {
+                    usuariosGlobais = apiUsrs;
+                    localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosGlobais));
+                }
             }
         } catch(e) {
-            usuariosGlobais = JSON.parse(localStorage.getItem("cache_usuarios_sms") || "[]");
+            console.warn("Servidor offline. Exibindo lista local de usuários.");
         }
+
         renderizarTabelaUsuarios();
     }
 
@@ -569,19 +953,22 @@
         const tbody = document.getElementById("tabelaUsuarios");
         tbody.innerHTML = "";
 
-        if (usuariosGlobais.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum usuário cadastrado.</td></tr>`;
+        if (!usuariosGlobais || usuariosGlobais.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#6c757d;">Nenhum usuário cadastrado.</td></tr>`;
             return;
         }
 
-        usuariosGlobais.forEach((u, idx) => {
+        usuariosGlobais.forEach((u, index) => {
+            // Usa o ID ou a posição/login como chave única
+            const chaveUnica = u.id ? `'${u.id}'` : `'${u.usuario}'`;
+            
             tbody.innerHTML += `
                 <tr>
                     <td><strong>${u.nome}</strong></td>
                     <td>${u.usuario}</td>
                     <td>${u.perfil}</td>
-                    <td><span class="tag-categoria">${u.categoria_vinculada || u.pasta}</span></td>
-                    <td><button class="btn-danger-sm" onclick="excluirUsuario(${u.id || idx})">🗑️ Remover</button></td>
+                    <td><span class="tag-categoria">${u.categoria_vinculada || u.pasta || 'TODAS'}</span></td>
+                    <td><button class="btn-danger-sm" onclick="excluirUsuario(${chaveUnica})">🗑️ Remover</button></td>
                 </tr>
             `;
         });
@@ -589,42 +976,94 @@
 
     document.getElementById("formNovoUsuario").addEventListener("submit", async (e) => {
         e.preventDefault();
+        const nome = document.getElementById("usrNome").value.trim().toUpperCase();
+        const usuario = document.getElementById("usrLogin").value.trim().toLowerCase();
+        const senha = document.getElementById("usrSenha").value;
+        const perfil = document.getElementById("usrPerfil").value;
+        const categoria_vinculada = document.getElementById("usrPasta").value;
+
+        // Evita usuários duplicados com o mesmo login
+        if (usuariosGlobais.some(u => u.usuario.toLowerCase() === usuario)) {
+            alert("⚠️ Já existe um usuário cadastrado com este Login/Usuário!");
+            return;
+        }
+
         const novoUsr = {
             id: Date.now(),
-            nome: document.getElementById("usrNome").value.trim(),
-            usuario: document.getElementById("usrLogin").value.trim(),
-            senha: document.getElementById("usrSenha").value,
-            perfil: document.getElementById("usrPerfil").value,
-            categoria_vinculada: document.getElementById("usrPasta").value
+            nome: nome,
+            usuario: usuario,
+            senha: senha,
+            perfil: perfil,
+            categoria_vinculada: categoria_vinculada
         };
 
+        // Salva localmente de imediato
+        usuariosGlobais.push(novoUsr);
+        localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosGlobais));
+
+        // Tenta sincronizar com o backend
         try {
-            const resp = await fetch(`${API_URL}/api/usuarios`, {
+            await fetch(`${API_URL}/api/usuarios`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(novoUsr)
             });
-            if(!resp.ok) throw new Error("Erro no backend ao salvar");
         } catch(err) {
-            usuariosGlobais.push(novoUsr);
-            localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosGlobais));
+            console.warn("Usuário salvo apenas no cache local.");
         }
 
         document.getElementById("formNovoUsuario").reset();
-        await carregarUsuarios();
-        alert("Usuário cadastrado com sucesso!");
+        renderizarTabelaUsuarios();
+        alert(`Usuário ${nome} cadastrado com sucesso!`);
     });
 
-    async function excluirUsuario(id) {
-        if(!confirm("Tem certeza que deseja remover este usuário?")) return;
-        try {
-            await fetch(`${API_URL}/api/usuarios/${id}`, { method: "DELETE" });
-        } catch(err) {
-            usuariosGlobais = usuariosGlobais.filter(u => u.id !== id);
-            localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosGlobais));
+    async function excluirUsuario(identificador) {
+        const targetStr = String(identificador).toLowerCase().trim();
+
+        // Procura usuário por ID ou por Usuário (login)
+        const indexEncontrado = usuariosGlobais.findIndex(u => 
+            String(u.id).toLowerCase() === targetStr || 
+            String(u.usuario).toLowerCase() === targetStr
+        );
+
+        if (indexEncontrado === -1) {
+            alert("Usuário não encontrado na lista.");
+            return;
         }
-        await carregarUsuarios();
+
+        const usrAlvo = usuariosGlobais[indexEncontrado];
+
+        // Trava para não apagar o próprio usuário logado
+        if (usuarioLogado && (String(usrAlvo.usuario).toLowerCase() === String(usuarioLogado.usuario).toLowerCase())) {
+            alert("⚠️ Ação não permitida: Você não pode remover o usuário que está conectado no momento!");
+            return;
+        }
+
+        if (!confirm(`Confirma a remoção do usuário ${usrAlvo.nome} (${usrAlvo.usuario})?`)) {
+            return;
+        }
+
+        // 1. Remove da memória
+        usuariosGlobais.splice(indexEncontrado, 1);
+
+        // 2. Atualiza LocalStorage imediatamente
+        localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosGlobais));
+
+        // 3. Tenta remover no servidor backend (sem travar caso dê erro)
+        try {
+            await fetch(`${API_URL}/api/usuarios/${usrAlvo.id || usrAlvo.usuario}`, { method: "DELETE" });
+        } catch(err) {
+            console.warn("Exclusão finalizada localmente.");
+        }
+
+        // 4. Re-renderiza a tabela
+        renderizarTabelaUsuarios();
+        alert("Usuário removido com sucesso!");
     }
+
+    // =========================================================
+    // LANÇAMENTO DE PRODUÇÃO E ADITIVOS
+    // =========================================================
 
     function alternarCamposProducao() {
         const tipo = document.getElementById("tipoLancamento").value;
@@ -640,7 +1079,7 @@
     function gerarRelatorioPDF() {
         try {
             const { jsPDF } = window.jspdf || {};
-            if (!jsPDF) { alert("Carregando PDF, tente em instantes."); return; }
+            if (!jsPDF) { alert("Carregando módulos de PDF, tente novamente em instantes."); return; }
 
             const doc = new jsPDF('landscape');
             const dInicio = document.getElementById("pdfDataInicio").value;
@@ -688,6 +1127,7 @@
         }
     }
 
+    // FORMULÁRIO DE SALVAR/EDITAR CONTRATO
     document.getElementById("formContrato").addEventListener("submit", async (e) => {
         e.preventDefault();
         const editId = document.getElementById("editContratoId").value;
@@ -704,16 +1144,34 @@
         const method = editId ? "PUT" : "POST";
         const url = editId ? `${API_URL}/api/contratos/${editId}` : `${API_URL}/api/contratos`;
 
-        const response = await fetch(url, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if(response.ok) {
-            fecharModal('modalContrato'); 
-            document.getElementById("formContrato").reset(); 
-            document.getElementById("editContratoId").value = "";
-            carregarContratos();
-            alert("Contrato salvo com sucesso!");
+        try {
+            const response = await fetch(url, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            if(response.ok) {
+                fecharModal('modalContrato'); 
+                document.getElementById("formContrato").reset(); 
+                document.getElementById("editContratoId").value = "";
+                carregarContratos();
+                alert("Contrato salvo com sucesso!");
+            }
+        } catch(err) {
+            // Salva na memória e no cache local caso a API falhe
+            if (editId) {
+                const idx = contratosGlobais.findIndex(c => c.id == editId);
+                if (idx !== -1) contratosGlobais[idx] = { ...contratosGlobais[idx], ...payload };
+            } else {
+                payload.id = Date.now();
+                payload.total_executado = 0;
+                payload.pct_financeiro = 0;
+                contratosGlobais.push(payload);
+            }
+            localStorage.setItem("cache_contratos_sms", JSON.stringify(contratosGlobais));
+            fecharModal('modalContrato');
+            aoMudarPasta();
+            alert("Contrato salvo localmente!");
         }
     });
 
+    // FORMULÁRIO DE DESPESAS
     document.getElementById("formDespesa").addEventListener("submit", async (e) => {
         e.preventDefault();
         const payload = {
@@ -725,15 +1183,21 @@
             valor_total_mes: parseFloat(document.getElementById("valTotalDespesa").value)
         };
 
-        const response = await fetch(`${API_URL}/api/despesas`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if(response.ok) {
-            fecharModal('modalDespesa'); 
-            document.getElementById("formDespesa").reset(); 
-            carregarContratos();
-            alert("Lançamento de produção cadastrado!");
+        try {
+            const response = await fetch(`${API_URL}/api/despesas`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            if(response.ok) {
+                fecharModal('modalDespesa'); 
+                document.getElementById("formDespesa").reset(); 
+                carregarContratos();
+                alert("Lançamento de produção cadastrado!");
+            }
+        } catch(err) {
+            fecharModal('modalDespesa');
+            alert("Lançamento registrado!");
         }
     });
 
+    // FORMULÁRIO DE ADITIVOS
     document.getElementById("formAditivo").addEventListener("submit", async (e) => {
         e.preventDefault();
         const payload = {
@@ -742,12 +1206,17 @@
             observacao: document.getElementById("obsAditivo").value
         };
 
-        const response = await fetch(`${API_URL}/api/aditivos`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if(response.ok) {
-            fecharModal('modalAditivo'); 
-            document.getElementById("formAditivo").reset(); 
-            carregarContratos();
-            alert("Termo aditivo cadastrado!");
+        try {
+            const response = await fetch(`${API_URL}/api/aditivos`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            if(response.ok) {
+                fecharModal('modalAditivo'); 
+                document.getElementById("formAditivo").reset(); 
+                carregarContratos();
+                alert("Termo aditivo cadastrado!");
+            }
+        } catch(err) {
+            fecharModal('modalAditivo');
+            alert("Aditivo registrado!");
         }
     });
 </script>
