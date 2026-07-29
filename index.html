@@ -32,7 +32,9 @@
         .btn-green { background-color: #28a745; } .btn-green:hover { background-color: #1e7e34; }
         .btn-amber { background-color: #ffc107; color: #212529; } .btn-amber:hover { background-color: #d39e00; }
         .btn-pdf { background-color: #dc3545; } .btn-pdf:hover { background-color: #bd2130; }
+        .btn-purple { background-color: #6f42c1; } .btn-purple:hover { background-color: #59359a; }
         .btn-edit { background: #6c757d; padding: 3px 8px; font-size: 11px; width: auto; }
+        .btn-danger-sm { background: #dc3545; padding: 3px 8px; font-size: 11px; width: auto; color: #fff; }
 
         .filter-panel { background: #eef4fc; padding: 18px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #d0e1f9; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
         .filter-group { flex: 1; min-width: 200px; }
@@ -43,13 +45,13 @@
         .card .val { font-size: 20px; font-weight: bold; color: #0056b3; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: #fff; width: 100%; max-width: 500px; padding: 25px; border-radius: 8px; position: relative; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: #fff; width: 100%; max-width: 650px; padding: 25px; border-radius: 8px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-modal { position: absolute; top: 12px; right: 15px; font-size: 20px; cursor: pointer; color: #888; }
 
         table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e9ecef; font-size: 13px; }
         th { background: #f8f9fa; color: #495057; font-weight: 600; }
-        .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; }
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-right: 4px; }
         .badge-alerta { background: #fff3cd; color: #856404; }
         .badge-ok { background: #d4edda; color: #155724; }
         .tag-categoria { background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
@@ -100,6 +102,7 @@
         <div class="actions-bar">
             <h3 style="color:#0056b3; font-size:16px;">Painel Geral de Monitoramento</h3>
             <div class="btn-group">
+                <button id="btnAdminUsuarios" class="btn-action btn-purple" style="display:none;" onclick="abrirModalUsuarios()">👥 Gerenciar Usuários</button>
                 <button class="btn-action" onclick="novoContrato()">➕ Novo Contrato</button>
                 <button class="btn-action btn-green" onclick="abrirModal('modalDespesa')">📊 Lançar Produção</button>
                 <button class="btn-action btn-amber" onclick="abrirModal('modalAditivo')">📝 Registrar Aditivo</button>
@@ -139,7 +142,7 @@
             </div>
         </div>
 
-        <h3 style="color:#0056b3; margin-bottom:12px; font-size:16px;">Contratos na Visão Atual</h3>
+        <h3 style="color:#0056b3; margin-bottom:12px; font-size:16px;">Contratos na Visão Atual (Todos os Cadastrados)</h3>
         <table>
             <thead>
                 <tr>
@@ -156,6 +159,59 @@
             </thead>
             <tbody id="tabelaContratos">
                 <tr><td colspan="9" class="loading-text">🔄 Conectando ao servidor... Aguarde.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL: GERENCIAR USUÁRIOS (ADMIN) -->
+<div id="modalUsuarios" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="fecharModal('modalUsuarios')">&times;</span>
+        <h3 style="color:#6f42c1; margin-bottom:15px;">👥 Gerenciamento de Usuários e Níveis de Acesso</h3>
+        
+        <!-- Formulário para Criar Usuário -->
+        <form id="formNovoUsuario" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+            <h4 style="font-size:13px; color:#495057; margin-bottom:10px;">Cadastrar Novo Usuário</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group"><label>Nome Completo</label><input type="text" id="usrNome" required placeholder="Ex: Maria Souza"></div>
+                <div class="form-group"><label>Login / Usuário</label><input type="text" id="usrLogin" required placeholder="Ex: maria.souza"></div>
+                <div class="form-group"><label>Senha</label><input type="password" id="usrSenha" required placeholder="Digite a senha"></div>
+                <div class="form-group">
+                    <label>Perfil</label>
+                    <select id="usrPerfil" required>
+                        <option value="Operador">Operador de Setor</option>
+                        <option value="Administrador Geral">Administrador Geral</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Pasta / Categoria de Acesso Permiida</label>
+                <select id="usrPasta" required>
+                    <option value="TODAS">TODAS (Acesso Administrador Total)</option>
+                    <option value="Diagnóstico por Imagem">Diagnóstico por Imagem</option>
+                    <option value="Laboratório">Laboratório</option>
+                    <option value="Leitos / UTI">Leitos / UTI</option>
+                    <option value="Manutenção de Equipamentos">Manutenção de Equipamentos</option>
+                    <option value="Serviços Médicos">Serviços Médicos</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-purple" style="margin-top:5px;">Salvar Usuário</button>
+        </form>
+
+        <h4 style="font-size:14px; color:#0056b3; margin-bottom:10px;">Usuários Cadastrados no Sistema</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Login</th>
+                    <th>Perfil</th>
+                    <th>Pasta Permitida</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaUsuarios">
+                <tr><td colspan="5" style="text-align:center;">Carregando usuários...</td></tr>
             </tbody>
         </table>
     </div>
@@ -249,6 +305,7 @@
     const API_URL = "https://api-controle-contratos.onrender.com";
     let contratosGlobais = [];
     let contratosFiltrados = [];
+    let usuariosGlobais = [];
     let usuarioLogado = null;
 
     const PASTAS_SISTEMA = [
@@ -294,7 +351,12 @@
         document.getElementById("nomeUsuario").innerText = usuario.nome;
         document.getElementById("perfilUsuario").innerText = usuario.perfil;
         
-        // RECUPERA CACHE LOCAL IMEDIATO
+        // Exibe botão de Gerenciar Usuários apenas para Administrador
+        if (usuario.perfil === "Administrador Geral" || usuario.categoria_vinculada === "TODAS") {
+            document.getElementById("btnAdminUsuarios").style.display = "inline-flex";
+        }
+
+        // Cache local imediato
         const cacheContratos = localStorage.getItem("cache_contratos_sms");
         if (cacheContratos) {
             contratosGlobais = JSON.parse(cacheContratos);
@@ -304,7 +366,6 @@
             configurarFiltroPasta();
         }
 
-        // CARREGA DADOS ATUALIZADOS DO BACKEND
         carregarContratos();
     }
 
@@ -347,14 +408,31 @@
             if (!response.ok) throw new Error("Erro ao conectar no servidor");
             
             contratosGlobais = await response.json();
-            
-            // Grava no cache do navegador para agilizar carregamentos no Ctrl+F5
             localStorage.setItem("cache_contratos_sms", JSON.stringify(contratosGlobais));
             
             aoMudarPasta();
         } catch (err) {
-            console.error("Aviso: usando cache local ou servidor em inicialização", err);
+            console.error("Aviso: usando dados locais ou aguardando inicialização do backend.", err);
         }
+    }
+
+    // CÁLCULO PRECISO DE PORCENTAGEM DE TEMPO
+    function calcularPctTempo(dataInicioStr, dataFimStr) {
+        if (!dataInicioStr || !dataFimStr) return 0;
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        
+        const inicio = new Date(dataInicioStr + "T00:00:00");
+        const fim = new Date(dataFimStr + "T00:00:00");
+        
+        if (hoje < inicio) return 0;
+        if (hoje > fim) return 100;
+        
+        const totalDias = (fim - inicio) / (1000 * 60 * 60 * 24);
+        const diasDecorridos = (hoje - inicio) / (1000 * 60 * 60 * 24);
+        
+        if (totalDias <= 0) return 100;
+        return parseFloat(((diasDecorridos / totalDias) * 100).toFixed(2));
     }
 
     function aoMudarPasta() {
@@ -378,6 +456,7 @@
         const pastaSel = document.getElementById("filtroPasta").value;
         const contratoSel = document.getElementById("filtroContrato").value;
 
+        // Mantém todos os contratos (incluindo vencidos) visíveis conforme a pasta
         contratosFiltrados = contratosGlobais.filter(c => {
             const batePasta = (pastaSel === "TODAS" || c.categoria === pastaSel);
             const bateContrato = (contratoSel === "TODOS" || c.id == contratoSel);
@@ -411,8 +490,12 @@
             selDespesa.innerHTML += `<option value="${c.id}">${c.numero_contrato} - ${c.empresa}</option>`;
             selAditivo.innerHTML += `<option value="${c.id}">${c.numero_contrato} - ${c.empresa}</option>`;
 
+            // Recalcula o tempo caso venha divergente
+            const pctTempoCalculado = calcularPctTempo(c.data_inicio, c.data_fim);
+            const tempoExibir = c.pct_tempo !== undefined ? c.pct_tempo : pctTempoCalculado;
+
             let alertaFin = c.alerta_financeiro ? `<span class="badge badge-alerta">⚠️ Finan. ${c.pct_financeiro}%</span>` : `<span class="badge badge-ok">Finan. OK (${c.pct_financeiro}%)</span>`;
-            let alertaTempo = c.alerta_tempo ? `<span class="badge badge-alerta">⚠️ Tempo ${c.pct_tempo}%</span>` : `<span class="badge badge-ok">Tempo OK (${c.pct_tempo}%)</span>`;
+            let alertaTempo = (tempoExibir >= 75) ? `<span class="badge badge-alerta">⚠️ Tempo ${tempoExibir}%</span>` : `<span class="badge badge-ok">Tempo OK (${tempoExibir}%)</span>`;
 
             tbody.innerHTML += `
                 <tr>
@@ -452,13 +535,95 @@
         lista.forEach(c => {
             totalReg += c.valor_total;
             totalExec += c.total_executado;
-            if (c.alerta_financeiro || c.alerta_tempo) alertas++;
+            const pctT = calcularPctTempo(c.data_inicio, c.data_fim);
+            if (c.alerta_financeiro || pctT >= 75) alertas++;
         });
 
         document.getElementById("dashTotalRegistrado").innerText = `R$ ${totalReg.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
         document.getElementById("dashTotalExecutado").innerText = `R$ ${totalExec.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
         document.getElementById("dashSaldoRestante").innerText = `R$ ${(totalReg - totalExec).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
         document.getElementById("dashTotalAlertas").innerText = alertas;
+    }
+
+    // GERENCIAMENTO DE USUÁRIOS
+    async function abrirModalUsuarios() {
+        abrirModal('modalUsuarios');
+        await carregarUsuarios();
+    }
+
+    async function carregarUsuarios() {
+        try {
+            const response = await fetch(`${API_URL}/api/usuarios`);
+            if (response.ok) {
+                usuariosGlobais = await response.json();
+            } else {
+                usuariosGlobais = JSON.parse(localStorage.getItem("cache_usuarios_sms") || "[]");
+            }
+        } catch(e) {
+            usuariosGlobais = JSON.parse(localStorage.getItem("cache_usuarios_sms") || "[]");
+        }
+        renderizarTabelaUsuarios();
+    }
+
+    function renderizarTabelaUsuarios() {
+        const tbody = document.getElementById("tabelaUsuarios");
+        tbody.innerHTML = "";
+
+        if (usuariosGlobais.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum usuário cadastrado.</td></tr>`;
+            return;
+        }
+
+        usuariosGlobais.forEach((u, idx) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${u.nome}</strong></td>
+                    <td>${u.usuario}</td>
+                    <td>${u.perfil}</td>
+                    <td><span class="tag-categoria">${u.categoria_vinculada || u.pasta}</span></td>
+                    <td><button class="btn-danger-sm" onclick="excluirUsuario(${u.id || idx})">🗑️ Remover</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    document.getElementById("formNovoUsuario").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const novoUsr = {
+            id: Date.now(),
+            nome: document.getElementById("usrNome").value.trim(),
+            usuario: document.getElementById("usrLogin").value.trim(),
+            senha: document.getElementById("usrSenha").value,
+            perfil: document.getElementById("usrPerfil").value,
+            categoria_vinculada: document.getElementById("usrPasta").value
+        };
+
+        try {
+            const resp = await fetch(`${API_URL}/api/usuarios`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(novoUsr)
+            });
+            if(!resp.ok) throw new Error("Erro no backend ao salvar");
+        } catch(err) {
+            usuariosGlobais.push(novoUsr);
+            localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosGlobais));
+        }
+
+        document.getElementById("formNovoUsuario").reset();
+        await carregarUsuarios();
+        alert("Usuário cadastrado com sucesso!");
+    });
+
+    async function excluirUsuario(id) {
+        if(!confirm("Tem certeza que deseja remover este usuário?")) return;
+        try {
+            await fetch(`${API_URL}/api/usuarios/${id}`, { method: "DELETE" });
+        } catch(err) {
+            usuariosGlobais = usuariosGlobais.filter(u => u.id !== id);
+            localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosGlobais));
+        }
+        await carregarUsuarios();
     }
 
     function alternarCamposProducao() {
@@ -472,43 +637,30 @@
         document.getElementById("valTotalDespesa").value = (qtd * unit).toFixed(2);
     }
 
-    // GERAÇÃO CORRIGIDA DE RELATÓRIO PDF
     function gerarRelatorioPDF() {
         try {
             const { jsPDF } = window.jspdf || {};
-            if (!jsPDF) {
-                alert("A biblioteca do PDF ainda está carregando. Aguarde 3 segundos e tente novamente.");
-                return;
-            }
+            if (!jsPDF) { alert("Carregando PDF, tente em instantes."); return; }
 
             const doc = new jsPDF('landscape');
-
             const dInicio = document.getElementById("pdfDataInicio").value;
             const dFim = document.getElementById("pdfDataFim").value;
 
             let listaPDF = [...contratosFiltrados];
 
-            // Filtro de Sobreposição de Período (Inclui contratos que estiveram ativos no período selecionado)
-            if (dInicio) {
-                listaPDF = listaPDF.filter(c => c.data_fim >= dInicio);
-            }
-            if (dFim) {
-                listaPDF = listaPDF.filter(c => c.data_inicio <= dFim);
-            }
+            if (dInicio) listaPDF = listaPDF.filter(c => c.data_fim >= dInicio);
+            if (dFim) listaPDF = listaPDF.filter(c => c.data_inicio <= dFim);
 
             if (listaPDF.length === 0) {
-                alert("Nenhum contrato encontrado para o período ou filtro selecionado.");
+                alert("Nenhum contrato encontrado para os filtros selecionados.");
                 return;
             }
 
-            doc.setFontSize(16);
-            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16); doc.setFont("helvetica", "bold");
             doc.text("SECRETARIA MUNICIPAL DE SAÚDE - DMAC", 14, 15);
-            
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            doc.text("Relatório de Auditoria e Acompanhamento de Contratos", 14, 21);
-            doc.text(`Emitido por: ${usuarioLogado ? usuarioLogado.nome : 'Denisval Rodrigues'} | Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 26);
+            doc.setFontSize(10); doc.setFont("helvetica", "normal");
+            doc.text("Relatório Oficial de Auditoria e Acompanhamento de Contratos", 14, 21);
+            doc.text(`Emitido por: ${usuarioLogado ? usuarioLogado.nome : 'Administrador'} | Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 26);
 
             const rows = listaPDF.map(c => [
                 c.numero_contrato,
@@ -518,7 +670,7 @@
                 `R$ ${c.total_executado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
                 `${c.pct_financeiro}%`,
                 `${c.data_inicio} a ${c.data_fim}`,
-                (c.alerta_financeiro || c.alerta_tempo) ? 'ALERTA' : 'OK'
+                (c.alerta_financeiro || calcularPctTempo(c.data_inicio, c.data_fim) >= 75) ? 'ALERTA' : 'OK'
             ]);
 
             doc.autoTable({
@@ -532,8 +684,7 @@
             fecharModal('modalRelatorio');
             doc.save(`Relatorio_Contratos_SMS_${new Date().toISOString().slice(0,10)}.pdf`);
         } catch (err) {
-            console.error("Erro na geração do PDF:", err);
-            alert("Erro ao gerar o relatório PDF: " + err.message);
+            alert("Erro ao gerar PDF: " + err.message);
         }
     }
 
@@ -559,7 +710,7 @@
             document.getElementById("formContrato").reset(); 
             document.getElementById("editContratoId").value = "";
             carregarContratos();
-            alert(editId ? "Contrato atualizado com sucesso!" : "Novo contrato cadastrado com sucesso!");
+            alert("Contrato salvo com sucesso!");
         }
     });
 
@@ -579,7 +730,7 @@
             fecharModal('modalDespesa'); 
             document.getElementById("formDespesa").reset(); 
             carregarContratos();
-            alert("Lançamento de produção cadastrado com sucesso!");
+            alert("Lançamento de produção cadastrado!");
         }
     });
 
@@ -596,7 +747,7 @@
             fecharModal('modalAditivo'); 
             document.getElementById("formAditivo").reset(); 
             carregarContratos();
-            alert("Termo aditivo cadastrado com sucesso!");
+            alert("Termo aditivo cadastrado!");
         }
     });
 </script>
