@@ -6,6 +6,8 @@
     <title>Sistema de Gestão e Auditoria de Contratos - SMS / DMAC</title>
     <!-- Bibliotecas de Terceiros para Geração de PDF Oficial -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- BRIDGE DE COMPATIBILIDADE -->
+    <script> window.jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF; </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.autotable.min.js"></script>
     <style>
         /* RESET E ESTILOS BASE */
@@ -471,7 +473,6 @@
         <span class="close-modal" onclick="fecharModal('modalUsuarios')">&times;</span>
         <h3 style="color:#6f42c1; margin-bottom:15px;">👥 Gerenciamento de Usuários e Níveis de Acesso</h3>
         
-        <!-- Formulário para Criar Usuário -->
         <form id="formNovoUsuario" style="background: #f8fafc; padding: 18px; border-radius: 6px; margin-bottom: 22px; border: 1px solid #e2e8f0;">
             <h4 style="font-size:13px; color:#334155; margin-bottom:12px; font-weight:700;">Cadastrar Novo Usuário</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -496,7 +497,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Pasta / Categoria de Acesso Permiida</label>
+                <label>Pasta / Categoria de Acesso Permitida</label>
                 <select id="usrPasta" required>
                     <option value="TODAS">TODAS (Acesso Administrador Total)</option>
                     <option value="Diagnóstico por Imagem">Diagnóstico por Imagem</option>
@@ -636,26 +637,27 @@
     </div>
 </div>
 
-<!-- MODAL: RELATÓRIO PDF -->
+<!-- MODAL: EMISSÃO DE RELATÓRIO PDF -->
 <div id="modalRelatorio" class="modal">
     <div class="modal-content">
         <span class="close-modal" onclick="fecharModal('modalRelatorio')">&times;</span>
-        <h3 style="color:#dc3545; margin-bottom:15px;">Emissão de Relatório Oficial (PDF)</h3>
+        <h3 style="color:#dc3545; margin-bottom:15px;">📄 Emissão de Relatório Oficial (PDF)</h3>
         <div class="form-group">
-            <label>Filtrar Período de Vigência (Opcional)</label>
-            <div style="display:flex; gap:10px;">
-                <input type="date" id="pdfDataInicio" title="Data Inicial">
-                <input type="date" id="pdfDataFim" title="Data Final">
-            </div>
+            <label>Filtrar Data Início Vigência (Opcional)</label>
+            <input type="date" id="pdfDataInicio">
         </div>
-        <p style="font-size:12px; color:#6c757d; margin-bottom:18px;">
-            O relatório PDF irá estruturar em tabela todos os contratos visíveis na tela de acordo com o filtro de pasta selecionado.
+        <div class="form-group">
+            <label>Filtrar Data Fim Vigência (Opcional)</label>
+            <input type="date" id="pdfDataFim">
+        </div>
+        <p style="font-size: 12px; color: #6c757d; margin-bottom: 15px;">
+            O relatório PDF irá estruturar em tabela todos os contratos visíveis na tela de acordo com os filtros selecionados.
         </p>
         <button type="button" class="btn-pdf" onclick="gerarRelatorioPDF()">Exportar PDF de Auditoria</button>
     </div>
 </div>
 
-<!-- LÓGICA JAVASCRIPT COMPLETA E CORRIGIDA -->
+<!-- LÓGICA JAVASCRIPT COMPLETA -->
 <script>
     const API_URL = "https://api-controle-contratos.onrender.com";
     let contratosGlobais = [];
@@ -673,7 +675,6 @@
 
     // INICIALIZAÇÃO E CARREGAMENTO
     document.addEventListener("DOMContentLoaded", () => {
-        // Inicializa lista padrão de usuários se não houver cache
         if (!localStorage.getItem("cache_usuarios_sms")) {
             const usuariosIniciais = [
                 { id: 1, nome: "DENISVAL RODRIGUES", usuario: "denisval", perfil: "Administrador Geral", categoria_vinculada: "TODAS" },
@@ -708,7 +709,6 @@
             localStorage.setItem("usuario_sms", JSON.stringify(data.usuario));
             exibirPainel(data.usuario);
         } catch (err) {
-            // Autenticação offline/local
             const listaLocal = JSON.parse(localStorage.getItem("cache_usuarios_sms") || "[]");
             const usrEncontrado = listaLocal.find(u => u.usuario.toLowerCase() === usuarioInput);
 
@@ -729,7 +729,6 @@
         document.getElementById("nomeUsuario").innerText = usuario.nome;
         document.getElementById("perfilUsuario").innerText = usuario.perfil;
         
-        // Habilita o botão de gerenciamento de usuários para Administradores
         if (usuario.perfil === "Administrador Geral" || usuario.categoria_vinculada === "TODAS") {
             document.getElementById("btnAdminUsuarios").style.display = "inline-flex";
         }
@@ -792,7 +791,6 @@
         }
     }
 
-    // CÁLCULO PRECISO DE PORCENTAGEM DE TEMPO
     function calcularPctTempo(dataInicioStr, dataFimStr) {
         if (!dataInicioStr || !dataFimStr) return 0;
         const hoje = new Date();
@@ -832,7 +830,6 @@
         const pastaSel = document.getElementById("filtroPasta").value;
         const contratoSel = document.getElementById("filtroContrato").value;
 
-        // Mantém todos os contratos (incluindo vencidos) visíveis conforme filtro
         contratosFiltrados = contratosGlobais.filter(c => {
             const batePasta = (pastaSel === "TODAS" || c.categoria === pastaSel);
             const bateContrato = (contratoSel === "TODOS" || c.id == contratoSel);
@@ -877,9 +874,9 @@
                     <td><strong>${c.numero_contrato}</strong></td>
                     <td><span class="tag-categoria">${c.categoria}</span></td>
                     <td>${c.empresa}</td>
-                    <td>R$ ${c.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                    <td>R$ ${c.total_executado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                    <td>${c.pct_financeiro}%</td>
+                    <td>R$ ${(c.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    <td>R$ ${(c.total_executado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    <td>${c.pct_financeiro || 0}%</td>
                     <td>${c.data_inicio} a ${c.data_fim}</td>
                     <td>${alertaFin} ${alertaTempo}</td>
                     <td><button class="btn-edit" onclick="prepararEdicao(${c.id})">✏️ Editar</button></td>
@@ -908,8 +905,8 @@
     function atualizarDashboardCards(lista) {
         let totalReg = 0, totalExec = 0, alertas = 0;
         lista.forEach(c => {
-            totalReg += c.valor_total;
-            totalExec += c.total_executado;
+            totalReg += (c.valor_total || 0);
+            totalExec += (c.total_executado || 0);
             const pctT = calcularPctTempo(c.data_inicio, c.data_fim);
             if (c.alerta_financeiro || pctT >= 75) alertas++;
         });
@@ -920,17 +917,13 @@
         document.getElementById("dashTotalAlertas").innerText = alertas;
     }
 
-    // =========================================================
-    // MÓDULO CORRIGIDO: GERENCIAMENTO DE USUÁRIOS E REMOÇÃO
-    // =========================================================
-
+    // GERENCIAMENTO DE USUÁRIOS
     async function abrirModalUsuarios() {
         abrirModal('modalUsuarios');
         await carregarUsuarios();
     }
 
     async function carregarUsuarios() {
-        // Carrega sempre do localStorage primeiro para garantir sincronia local
         usuariosGlobais = JSON.parse(localStorage.getItem("cache_usuarios_sms") || "[]");
 
         try {
@@ -958,8 +951,7 @@
             return;
         }
 
-        usuariosGlobais.forEach((u, index) => {
-            // Usa o ID ou a posição/login como chave única
+        usuariosGlobais.forEach((u) => {
             const chaveUnica = u.id ? `'${u.id}'` : `'${u.usuario}'`;
             
             tbody.innerHTML += `
@@ -982,7 +974,6 @@
         const perfil = document.getElementById("usrPerfil").value;
         const categoria_vinculada = document.getElementById("usrPasta").value;
 
-        // Evita usuários duplicados com o mesmo login
         if (usuariosGlobais.some(u => u.usuario.toLowerCase() === usuario)) {
             alert("⚠️ Já existe um usuário cadastrado com este Login/Usuário!");
             return;
@@ -997,11 +988,9 @@
             categoria_vinculada: categoria_vinculada
         };
 
-        // Salva localmente de imediato
         usuariosGlobais.push(novoUsr);
         localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosGlobais));
 
-        // Tenta sincronizar com o backend
         try {
             await fetch(`${API_URL}/api/usuarios`, {
                 method: "POST",
@@ -1020,7 +1009,6 @@
     async function excluirUsuario(identificador) {
         const targetStr = String(identificador).toLowerCase().trim();
 
-        // Procura usuário por ID ou por Usuário (login)
         const indexEncontrado = usuariosGlobais.findIndex(u => 
             String(u.id).toLowerCase() === targetStr || 
             String(u.usuario).toLowerCase() === targetStr
@@ -1033,7 +1021,6 @@
 
         const usrAlvo = usuariosGlobais[indexEncontrado];
 
-        // Trava para não apagar o próprio usuário logado
         if (usuarioLogado && (String(usrAlvo.usuario).toLowerCase() === String(usuarioLogado.usuario).toLowerCase())) {
             alert("⚠️ Ação não permitida: Você não pode remover o usuário que está conectado no momento!");
             return;
@@ -1043,47 +1030,36 @@
             return;
         }
 
-        // 1. Remove da memória
         usuariosGlobais.splice(indexEncontrado, 1);
-
-        // 2. Atualiza LocalStorage imediatamente
         localStorage.setItem("cache_usuarios_sms", JSON.stringify(usuariosGlobais));
 
-        // 3. Tenta remover no servidor backend (sem travar caso dê erro)
         try {
             await fetch(`${API_URL}/api/usuarios/${usrAlvo.id || usrAlvo.usuario}`, { method: "DELETE" });
         } catch(err) {
             console.warn("Exclusão finalizada localmente.");
         }
 
-        // 4. Re-renderiza a tabela
         renderizarTabelaUsuarios();
         alert("Usuário removido com sucesso!");
     }
 
-    // =========================================================
-    // LANÇAMENTO DE PRODUÇÃO E ADITIVOS
-    // =========================================================
-
-    function alternarCamposProducao() {
-        const tipo = document.getElementById("tipoLancamento").value;
-        document.getElementById("camposProducao").style.display = tipo === 'Produção' ? 'block' : 'none';
-    }
-
-    function calcularTotalProducao() {
-        const qtd = parseFloat(document.getElementById("qtdExames").value) || 0;
-        const unit = parseFloat(document.getElementById("valUnitario").value) || 0;
-        document.getElementById("valTotalDespesa").value = (qtd * unit).toFixed(2);
-    }
-
+    // MÓDULO DE EMISSÃO DE PDF
     function gerarRelatorioPDF() {
         try {
             const { jsPDF } = window.jspdf || {};
-            if (!jsPDF) { alert("Carregando módulos de PDF, tente novamente em instantes."); return; }
+            const PDFClass = jsPDF || window.jsPDF;
 
-            const doc = new jsPDF('landscape');
-            const dInicio = document.getElementById("pdfDataInicio").value;
-            const dFim = document.getElementById("pdfDataFim").value;
+            if (!PDFClass) {
+                alert("Biblioteca PDF ainda está carregando ou não foi encontrada. Aguarde um instante.");
+                return;
+            }
+
+            const doc = new PDFClass('landscape');
+            const elInicio = document.getElementById("pdfDataInicio");
+            const elFim = document.getElementById("pdfDataFim");
+            
+            const dInicio = elInicio ? elInicio.value : "";
+            const dFim = elFim ? elFim.value : "";
 
             let listaPDF = [...contratosFiltrados];
 
@@ -1095,9 +1071,12 @@
                 return;
             }
 
-            doc.setFontSize(16); doc.setFont("helvetica", "bold");
+            doc.setFontSize(16); 
+            doc.setFont("helvetica", "bold");
             doc.text("SECRETARIA MUNICIPAL DE SAÚDE - DMAC", 14, 15);
-            doc.setFontSize(10); doc.setFont("helvetica", "normal");
+            
+            doc.setFontSize(10); 
+            doc.setFont("helvetica", "normal");
             doc.text("Relatório Oficial de Auditoria e Acompanhamento de Contratos", 14, 21);
             doc.text(`Emitido por: ${usuarioLogado ? usuarioLogado.nome : 'Administrador'} | Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 26);
 
@@ -1105,26 +1084,50 @@
                 c.numero_contrato,
                 c.categoria,
                 c.empresa,
-                `R$ ${c.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
-                `R$ ${c.total_executado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
-                `${c.pct_financeiro}%`,
+                `R$ ${(c.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+                `R$ ${(c.total_executado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+                `${c.pct_financeiro || 0}%`,
                 `${c.data_inicio} a ${c.data_fim}`,
                 (c.alerta_financeiro || calcularPctTempo(c.data_inicio, c.data_fim) >= 75) ? 'ALERTA' : 'OK'
             ]);
 
-            doc.autoTable({
+            const configuracaoTabela = {
                 startY: 32,
                 head: [['Nº Contrato', 'Pasta', 'Empresa', 'Valor Total', 'Executado', '% Fin.', 'Vigência', 'Status']],
                 body: rows,
                 theme: 'grid',
                 headStyles: { fillColor: [0, 86, 179] }
-            });
+            };
+
+            // CHAMADA SEGURA DO AUTOTABLE
+            if (typeof doc.autoTable === 'function') {
+                doc.autoTable(configuracaoTabela);
+            } else if (typeof autoTable === 'function') {
+                autoTable(doc, configuracaoTabela);
+            } else if (window.jspdf && typeof window.jspdf.autoTable === 'function') {
+                window.jspdf.autoTable(doc, configuracaoTabela);
+            } else {
+                throw new Error("Plugin AutoTable não pôde ser inicializado pelo navegador.");
+            }
 
             fecharModal('modalRelatorio');
             doc.save(`Relatorio_Contratos_SMS_${new Date().toISOString().slice(0,10)}.pdf`);
+
         } catch (err) {
             alert("Erro ao gerar PDF: " + err.message);
         }
+    }
+
+    // LANÇAMENTO DE PRODUÇÃO E ADITIVOS
+    function alternarCamposProducao() {
+        const tipo = document.getElementById("tipoLancamento").value;
+        document.getElementById("camposProducao").style.display = tipo === 'Produção' ? 'block' : 'none';
+    }
+
+    function calcularTotalProducao() {
+        const qtd = parseFloat(document.getElementById("qtdExames").value) || 0;
+        const unit = parseFloat(document.getElementById("valUnitario").value) || 0;
+        document.getElementById("valTotalDespesa").value = (qtd * unit).toFixed(2);
     }
 
     // FORMULÁRIO DE SALVAR/EDITAR CONTRATO
@@ -1154,7 +1157,6 @@
                 alert("Contrato salvo com sucesso!");
             }
         } catch(err) {
-            // Salva na memória e no cache local caso a API falhe
             if (editId) {
                 const idx = contratosGlobais.findIndex(c => c.id == editId);
                 if (idx !== -1) contratosGlobais[idx] = { ...contratosGlobais[idx], ...payload };
