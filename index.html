@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Gestão e Auditoria de Contratos - SMS / DMAC</title>
-    <!-- Bibliotecas de Terceiros para Geração de PDF Oficial -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- BRIDGE DE COMPATIBILIDADE -->
-    <script> window.jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF; </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.autotable.min.js"></script>
+    
+    <!-- Bibliotecas de Terceiros para Geração de PDF (jsPDF + AutoTable via CDNjsDelivr) -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.autotable.min.js"></script>
+
     <style>
         /* RESET E ESTILOS BASE */
         * {
@@ -657,7 +657,7 @@
     </div>
 </div>
 
-<!-- LÓGICA JAVASCRIPT COMPLETA -->
+<!-- LÓGICA JAVASCRIPT COMPLETA E CORRIGIDA -->
 <script>
     const API_URL = "https://api-controle-contratos.onrender.com";
     let contratosGlobais = [];
@@ -673,7 +673,7 @@
         "Serviços Médicos"
     ];
 
-    // INICIALIZAÇÃO E CARREGAMENTO
+    // INICIALIZAÇÃO E CARREGAMENTO DE DADOS
     document.addEventListener("DOMContentLoaded", () => {
         if (!localStorage.getItem("cache_usuarios_sms")) {
             const usuariosIniciais = [
@@ -690,7 +690,7 @@
         }
     });
 
-    // AUTENTICAÇÃO E LOGIN
+    // SISTEMA DE AUTENTICAÇÃO
     document.getElementById("formLogin").addEventListener("submit", async (e) => {
         e.preventDefault();
         const usuarioInput = document.getElementById("usuario").value.trim().toLowerCase();
@@ -1043,18 +1043,20 @@
         alert("Usuário removido com sucesso!");
     }
 
-    // MÓDULO DE EMISSÃO DE PDF
+    // MÓDULO CORRIGIDO DE EMISSÃO DE PDF
     function gerarRelatorioPDF() {
         try {
-            const { jsPDF } = window.jspdf || {};
-            const PDFClass = jsPDF || window.jsPDF;
+            // Resolução de Construtor UMD
+            const jsPDFClass = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
 
-            if (!PDFClass) {
-                alert("Biblioteca PDF ainda está carregando ou não foi encontrada. Aguarde um instante.");
+            if (!jsPDFClass) {
+                alert("A biblioteca jsPDF não foi carregada. Verifique a conexão do servidor GitHub Pages com as CDNs.");
                 return;
             }
 
-            const doc = new PDFClass('landscape');
+            // Instancia o PDF na orientação paisagem
+            const doc = new jsPDFClass({ orientation: 'landscape' });
+
             const elInicio = document.getElementById("pdfDataInicio");
             const elFim = document.getElementById("pdfDataFim");
             
@@ -1071,6 +1073,7 @@
                 return;
             }
 
+            // Cabeçalho do Relatório
             doc.setFontSize(16); 
             doc.setFont("helvetica", "bold");
             doc.text("SECRETARIA MUNICIPAL DE SAÚDE - DMAC", 14, 15);
@@ -1080,6 +1083,7 @@
             doc.text("Relatório Oficial de Auditoria e Acompanhamento de Contratos", 14, 21);
             doc.text(`Emitido por: ${usuarioLogado ? usuarioLogado.nome : 'Administrador'} | Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 26);
 
+            // Dados da Tabela
             const rows = listaPDF.map(c => [
                 c.numero_contrato,
                 c.categoria,
@@ -1099,15 +1103,14 @@
                 headStyles: { fillColor: [0, 86, 179] }
             };
 
-            // CHAMADA SEGURA DO AUTOTABLE
+            // Execução segura do AutoTable
             if (typeof doc.autoTable === 'function') {
                 doc.autoTable(configuracaoTabela);
-            } else if (typeof autoTable === 'function') {
-                autoTable(doc, configuracaoTabela);
-            } else if (window.jspdf && typeof window.jspdf.autoTable === 'function') {
-                window.jspdf.autoTable(doc, configuracaoTabela);
+            } else if (typeof window.autoTable === 'function') {
+                window.autoTable(doc, configuracaoTabela);
             } else {
-                throw new Error("Plugin AutoTable não pôde ser inicializado pelo navegador.");
+                alert("O plugin AutoTable não pôde ser vinculado. Por favor, pressione Ctrl+F5 para atualizar o cache do navegador.");
+                return;
             }
 
             fecharModal('modalRelatorio');
@@ -1118,7 +1121,7 @@
         }
     }
 
-    // LANÇAMENTO DE PRODUÇÃO E ADITIVOS
+    // OPERAÇÕES DE LANÇAMENTO E ADITIVOS
     function alternarCamposProducao() {
         const tipo = document.getElementById("tipoLancamento").value;
         document.getElementById("camposProducao").style.display = tipo === 'Produção' ? 'block' : 'none';
@@ -1130,7 +1133,7 @@
         document.getElementById("valTotalDespesa").value = (qtd * unit).toFixed(2);
     }
 
-    // FORMULÁRIO DE SALVAR/EDITAR CONTRATO
+    // FORMULÁRIOS
     document.getElementById("formContrato").addEventListener("submit", async (e) => {
         e.preventDefault();
         const editId = document.getElementById("editContratoId").value;
@@ -1173,7 +1176,6 @@
         }
     });
 
-    // FORMULÁRIO DE DESPESAS
     document.getElementById("formDespesa").addEventListener("submit", async (e) => {
         e.preventDefault();
         const payload = {
@@ -1199,7 +1201,6 @@
         }
     });
 
-    // FORMULÁRIO DE ADITIVOS
     document.getElementById("formAditivo").addEventListener("submit", async (e) => {
         e.preventDefault();
         const payload = {
