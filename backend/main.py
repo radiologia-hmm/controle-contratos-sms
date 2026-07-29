@@ -37,7 +37,8 @@ def init_db():
             )
         """)
         
-        cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (1, 'denisval', '123456', 'Denisval Rodrigues', 'Coordenador de Diagnóstico por Imagem', 'Diagnóstico por Imagem')")
+        # Denisval atualizado para Administrador Geral (Acesso a TODAS as pastas)
+        cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (1, 'denisval', '123456', 'Denisval Rodrigues', 'Administrador Geral', 'TODAS')")
         cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (2, 'luana', '123456', 'Luana', 'Diretora DMAC', 'TODAS')")
         cursor.execute("INSERT OR REPLACE INTO usuarios (id, usuario, senha, nome, perfil, categoria_vinculada) VALUES (3, 'admin', '123456', 'Administrador do Sistema', 'Administrador Geral', 'TODAS')")
 
