@@ -54,6 +54,8 @@
         .badge-ok { background: #d4edda; color: #155724; }
         .tag-categoria { background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
         .alert-error { color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none; font-size: 13px; }
+        
+        .loading-text { text-align: center; color: #0056b3; padding: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -152,7 +154,9 @@
                     <th>Ações</th>
                 </tr>
             </thead>
-            <tbody id="tabelaContratos"></tbody>
+            <tbody id="tabelaContratos">
+                <tr><td colspan="9" class="loading-text">🔄 Conectando ao servidor... Aguarde.</td></tr>
+            </tbody>
         </table>
     </div>
 </div>
@@ -236,7 +240,7 @@
                 <input type="date" id="pdfDataFim" title="Data Final">
             </div>
         </div>
-        <p style="font-size:12px; color:#6c757d; margin-bottom:15px;">O relatório exportará os contratos visíveis atualmente conforme os seus privilégios de acesso.</p>
+        <p style="font-size:12px; color:#6c757d; margin-bottom:15px;">O relatório exportará os contratos visíveis na tabela conforme o filtro aplicado.</p>
         <button type="button" class="btn-pdf" onclick="gerarRelatorioPDF()">Exportar PDF de Segurança</button>
     </div>
 </div>
@@ -290,11 +294,25 @@
         document.getElementById("nomeUsuario").innerText = usuario.nome;
         document.getElementById("perfilUsuario").innerText = usuario.perfil;
         
-        configurarFiltroPasta();
+        // RECUPERA CACHE LOCAL IMEDIATO
+        const cacheContratos = localStorage.getItem("cache_contratos_sms");
+        if (cacheContratos) {
+            contratosGlobais = JSON.parse(cacheContratos);
+            configurarFiltroPasta();
+            aoMudarPasta();
+        } else {
+            configurarFiltroPasta();
+        }
+
+        // CARREGA DADOS ATUALIZADOS DO BACKEND
         carregarContratos();
     }
 
-    function logout() { localStorage.removeItem("usuario_sms"); location.reload(); }
+    function logout() { 
+        localStorage.removeItem("usuario_sms"); 
+        localStorage.removeItem("cache_contratos_sms");
+        location.reload(); 
+    }
 
     function abrirModal(id) { document.getElementById(id).style.display = "flex"; }
     function fecharModal(id) { document.getElementById(id).style.display = "none"; }
@@ -326,11 +344,16 @@
             const url = cat && cat !== 'TODAS' ? `${API_URL}/api/contratos?categoria=${encodeURIComponent(cat)}` : `${API_URL}/api/contratos`;
             
             const response = await fetch(url);
+            if (!response.ok) throw new Error("Erro ao conectar no servidor");
+            
             contratosGlobais = await response.json();
+            
+            // Grava no cache do navegador para agilizar carregamentos no Ctrl+F5
+            localStorage.setItem("cache_contratos_sms", JSON.stringify(contratosGlobais));
             
             aoMudarPasta();
         } catch (err) {
-            console.error(err);
+            console.error("Aviso: usando cache local ou servidor em inicialização", err);
         }
     }
 
@@ -378,6 +401,11 @@
         const selAditivo = document.getElementById("selectContratoAditivo");
 
         tbody.innerHTML = ""; selDespesa.innerHTML = ""; selAditivo.innerHTML = "";
+
+        if (lista.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#6c757d;">Nenhum contrato cadastrado nesta visão ou pasta.</td></tr>`;
+            return;
+        }
 
         lista.forEach(c => {
             selDespesa.innerHTML += `<option value="${c.id}">${c.numero_contrato} - ${c.empresa}</option>`;
@@ -444,50 +472,69 @@
         document.getElementById("valTotalDespesa").value = (qtd * unit).toFixed(2);
     }
 
-    // GERAÇÃO DE RELATÓRIO OFICIAL EM PDF
+    // GERAÇÃO CORRIGIDA DE RELATÓRIO PDF
     function gerarRelatorioPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('landscape');
+        try {
+            const { jsPDF } = window.jspdf || {};
+            if (!jsPDF) {
+                alert("A biblioteca do PDF ainda está carregando. Aguarde 3 segundos e tente novamente.");
+                return;
+            }
 
-        const dInicio = document.getElementById("pdfDataInicio").value;
-        const dFim = document.getElementById("pdfDataFim").value;
+            const doc = new jsPDF('landscape');
 
-        let listaPDF = contratosFiltrados;
+            const dInicio = document.getElementById("pdfDataInicio").value;
+            const dFim = document.getElementById("pdfDataFim").value;
 
-        if (dInicio && dFim) {
-            listaPDF = listaPDF.filter(c => c.data_inicio >= dInicio && c.data_fim <= dFim);
+            let listaPDF = [...contratosFiltrados];
+
+            // Filtro de Sobreposição de Período (Inclui contratos que estiveram ativos no período selecionado)
+            if (dInicio) {
+                listaPDF = listaPDF.filter(c => c.data_fim >= dInicio);
+            }
+            if (dFim) {
+                listaPDF = listaPDF.filter(c => c.data_inicio <= dFim);
+            }
+
+            if (listaPDF.length === 0) {
+                alert("Nenhum contrato encontrado para o período ou filtro selecionado.");
+                return;
+            }
+
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text("SECRETARIA MUNICIPAL DE SAÚDE - DMAC", 14, 15);
+            
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("Relatório de Auditoria e Acompanhamento de Contratos", 14, 21);
+            doc.text(`Emitido por: ${usuarioLogado ? usuarioLogado.nome : 'Denisval Rodrigues'} | Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 26);
+
+            const rows = listaPDF.map(c => [
+                c.numero_contrato,
+                c.categoria,
+                c.empresa,
+                `R$ ${c.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+                `R$ ${c.total_executado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+                `${c.pct_financeiro}%`,
+                `${c.data_inicio} a ${c.data_fim}`,
+                (c.alerta_financeiro || c.alerta_tempo) ? 'ALERTA' : 'OK'
+            ]);
+
+            doc.autoTable({
+                startY: 32,
+                head: [['Nº Contrato', 'Pasta', 'Empresa', 'Valor Total', 'Executado', '% Fin.', 'Vigência', 'Status']],
+                body: rows,
+                theme: 'grid',
+                headStyles: { fillColor: [0, 86, 179] }
+            });
+
+            fecharModal('modalRelatorio');
+            doc.save(`Relatorio_Contratos_SMS_${new Date().toISOString().slice(0,10)}.pdf`);
+        } catch (err) {
+            console.error("Erro na geração do PDF:", err);
+            alert("Erro ao gerar o relatório PDF: " + err.message);
         }
-
-        doc.setFontSize(16);
-        doc.setFont("helvetica", "bold");
-        doc.text("SECRETARIA MUNICIPAL DE SAÚDE - DMAC", 14, 15);
-        
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text("Relatório de Auditoria e Acompanhamento de Contratos", 14, 21);
-        doc.text(`Emitido por: ${usuarioLogado.nome} | Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 26);
-
-        const rows = listaPDF.map(c => [
-            c.numero_contrato,
-            c.categoria,
-            c.empresa,
-            `R$ ${c.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
-            `R$ ${c.total_executado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
-            `${c.pct_financeiro}%`,
-            `${c.data_inicio} a ${c.data_fim}`,
-            (c.alerta_financeiro || c.alerta_tempo) ? 'ALERTA' : 'OK'
-        ]);
-
-        doc.autoTable({
-            startY: 32,
-            head: [['Nº Contrato', 'Pasta', 'Empresa', 'Valor Total', 'Executado', '% Fin.', 'Vigência', 'Status']],
-            body: rows,
-            theme: 'grid',
-            headStyles: { fillColor: [0, 86, 179] }
-        });
-
-        fecharModal('modalRelatorio');
-        doc.save(`Relatorio_Contratos_SMS_${new Date().toISOString().slice(0,10)}.pdf`);
     }
 
     document.getElementById("formContrato").addEventListener("submit", async (e) => {
